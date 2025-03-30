@@ -178,16 +178,17 @@ function HomePage() {
               href="/auth"
               onClick={handleNavigation}
               style={{ 
-                textDecoration: 'none',
                 color: '#D35400',
                 padding: '0.4rem 1rem',
                 borderRadius: '5px',
                 border: '2px solid #D35400',
+                textDecoration: 'none',
                 fontWeight: 'bold',
                 transition: 'all 0.3s ease',
                 backgroundColor: 'transparent',
-                cursor: 'pointer'
-              }}
+                whiteSpace: 'nowrap',
+                fontSize: '0.9rem', // Ajout de la taille de police
+                  }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.backgroundColor = '#D35400';
                 e.currentTarget.style.color = 'white';
