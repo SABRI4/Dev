@@ -1,10 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import backgroundImage from '../../Pictures/kitchen-background.jpg';
-// Importez vos logos
-import logoImage from '../../Pictures/cyhome-logo.png'; // Ajustez le chemin selon votre structure
-import cytechLogo from '../../Pictures/cytech-logo.png'; // Ajoutez ce logo à votre projet
-
+import logoImage from '../../Pictures/cyhome-logo.png';
+import cytechLogo from '../../Pictures/cytech-logo.png';
 function HomePage() {
   const navigate = useNavigate();
   const [isNavigating, setIsNavigating] = useState(false);
