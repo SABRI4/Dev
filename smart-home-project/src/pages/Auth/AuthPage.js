@@ -1,57 +1,108 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import backgroundImage from '../../Pictures/kitchen-background.jpg';
 
 function AuthPage() {
   const navigate = useNavigate();
   
-  // État pour suivre si nous sommes en mode inscription ou connexion
+  // État pour basculer entre inscription et connexion
   const [isSignUp, setIsSignUp] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [username, setUsername] = useState('');
+  const [role, setRole] = useState('user');
+  const [file, setFile] = useState(null);
+  // État pour stocker le message d'erreur à afficher
+  const [errorMessage, setErrorMessage] = useState('');
   
-  // États pour les animations
   const [isAnimating, setIsAnimating] = useState(false);
   const [isPageVisible, setIsPageVisible] = useState(false);
   const [isNavigatingHome, setIsNavigatingHome] = useState(false);
 
-  // Animation d'entrée au chargement de la page
   useEffect(() => {
-    // Court délai pour laisser le DOM se charger
     const timer = setTimeout(() => {
       setIsPageVisible(true);
     }, 100);
-    
     return () => clearTimeout(timer);
   }, []);
 
-  // Fonction pour basculer entre inscription et connexion
   const handleToggle = () => {
     setIsAnimating(true);
-    // Délai pour permettre à l'animation de se produire avant de changer l'état
+    setErrorMessage('');  // Réinitialiser le message d'erreur lors du changement de formulaire
     setTimeout(() => {
       setIsSignUp(!isSignUp);
       setIsAnimating(false);
     }, 300);
   };
 
-  // Fonction pour retourner à l'accueil avec transition
   const handleNavigateHome = (e) => {
     e.preventDefault();
     setIsNavigatingHome(true);
-    
     setTimeout(() => {
       navigate('/');
     }, 500);
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log(isSignUp ? 'Inscription' : 'Connexion', { email, password, username });
+    if (isSignUp) {
+      // Inscription
+      const url = 'http://localhost:3020/plateforme/smart-home-project/api/signup.php';
+      const formData = new FormData();
+      formData.append('username', username);
+      formData.append('email', email);
+      formData.append('password', password);
+      formData.append('role', role);
+      if (file) {
+        formData.append('photo', file);
+      }
+      try {
+        const response = await fetch(url, {
+          method: 'POST',
+          body: formData,
+          credentials: 'include',
+        });
+        const data = await response.json();
+        if (data.status === 'success') {
+          console.log('Compte créé avec succès');
+          navigate('/auth');
+        } else {
+          console.error(data.message);
+          setErrorMessage(data.message);
+        }
+      } catch (error) {
+        console.error("Erreur lors de l'inscription", error);
+
+      }
+    } else {
+      // Connexion
+      const url = 'http://localhost:3020/plateforme/smart-home-project/api/login.php';
+      const formData = new FormData();
+      formData.append('username', username);
+      formData.append('password', password);
+      try {
+        const response = await fetch(url, {
+          method: 'POST',
+          body: formData,
+          credentials: 'include',
+        });
+        const data = await response.json();
+        if (data.status === 'success') {
+          console.log('Connexion réussie', data.user);
+          localStorage.setItem('user', JSON.stringify(data.user));
+          navigate('/');
+        } else {
+          console.error(data.message);
+          setErrorMessage(data.message);
+
+        }
+      } catch (error) {
+        console.error('Erreur lors de la connexion', error);
+        setErrorMessage("Erreur lors de la connexion");
+      }
+    }
   };
 
-  // Style de la page entière (avec animation d'entrée/sortie)
   const pageStyle = {
     position: 'relative',
     minHeight: '100vh',
@@ -66,7 +117,6 @@ function AuthPage() {
     transition: 'opacity 0.5s ease'
   };
 
-  // Styles pour l'animation de transition entre les formulaires
   const formStyle = {
     width: '400px',
     padding: '30px',
@@ -79,7 +129,6 @@ function AuthPage() {
     backdropFilter: 'blur(5px)',
   };
 
-  // Style des boutons
   const buttonStyle = {
     width: '100%',
     padding: '12px',
@@ -93,8 +142,7 @@ function AuthPage() {
     marginBottom: '20px',
     transition: 'all 0.3s ease'
   };
-  
-  // Style des champs
+
   const inputStyle = {
     width: '100%',
     padding: '12px',
@@ -105,8 +153,7 @@ function AuthPage() {
     transition: 'border-color 0.3s',
     backgroundColor: 'white'
   };
-  
-  // Style du bouton de toggle
+
   const toggleButtonStyle = {
     padding: '10px 20px',
     background: 'transparent',
@@ -120,52 +167,78 @@ function AuthPage() {
     transition: 'all 0.3s ease'
   };
 
+  const errorStyle = {
+    backgroundColor: '#f8d7da',
+    color: '#842029',
+    border: '1px solid #f5c2c7',
+    padding: '10px',
+    borderRadius: '5px',
+    display: 'flex',
+    alignItems: 'center',
+    marginBottom: '15px'
+  };
+
   return (
     <div style={pageStyle}>
-      {/* Overlay d'assombrissement avec effet de flou */}
-      <div style={{ 
-        position: 'absolute', 
-        top: 0, 
-        left: 0, 
-        right: 0, 
-        bottom: 0, 
-        backgroundColor: 'rgba(0,0,0,0.4)', 
-        backdropFilter: 'blur(8px)', 
-        zIndex: 1 
+      <div style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(0,0,0,0.4)',
+        backdropFilter: 'blur(8px)',
+        zIndex: 1
       }} />
-      
-      {/* Contenu principal avec l'élévation Z-index */}
       <div style={{ position: 'relative', zIndex: 2 }}>
         {isSignUp ? (
-          // FORMULAIRE D'INSCRIPTION
           <div style={formStyle}>
-            <h1 style={{ 
-              textAlign: 'center', 
-              fontSize: '28px', 
-              marginBottom: '20px',
-              color: '#333',
-              fontFamily: 'Arial, sans-serif'
-            }}>Create Account</h1>
+            <h1 style={{ textAlign: 'center', fontSize: '28px', marginBottom: '20px', color: '#333', fontFamily: 'Arial, sans-serif' }}>
+              Create Account
+            </h1>
+            {errorMessage && (
+              <div style={errorStyle}>
+                <span style={{ marginRight: '8px', fontSize: '1.2em' }}>⚠️</span>
+                <span>{errorMessage}</span>
+              </div>
+            )}
             <form onSubmit={handleSubmit}>
               <input
                 type="text"
                 placeholder="Username"
                 value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                onChange={(e) => {
+                  setUsername(e.target.value);
+                  if (errorMessage) setErrorMessage('');
+                }}
                 style={inputStyle}
               />
               <input
                 type="email"
                 placeholder="Email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  if (errorMessage) setErrorMessage('');
+                }}
                 style={inputStyle}
               />
               <input
                 type="password"
                 placeholder="Password"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  if (errorMessage) setErrorMessage('');
+                }}
+                style={inputStyle}
+              />
+              <input
+                type="file"
+                onChange={(e) => {
+                  setFile(e.target.files[0]);
+                  if (errorMessage) setErrorMessage('');
+                }}
                 style={inputStyle}
               />
               <button
@@ -185,7 +258,6 @@ function AuthPage() {
                 SIGN UP
               </button>
             </form>
-            
             <div style={{ textAlign: 'center' }}>
               <p style={{ color: '#666', fontFamily: 'Arial, sans-serif' }}>Already have an account?</p>
               <button
@@ -207,28 +279,35 @@ function AuthPage() {
             </div>
           </div>
         ) : (
-          // FORMULAIRE DE CONNEXION
           <div style={formStyle}>
-            <h1 style={{ 
-              textAlign: 'center', 
-              fontSize: '28px', 
-              marginBottom: '20px',
-              color: '#333',
-              fontFamily: 'Arial, sans-serif'
-            }}>Log In</h1>
+            <h1 style={{ textAlign: 'center', fontSize: '28px', marginBottom: '20px', color: '#333', fontFamily: 'Arial, sans-serif' }}>
+              Log In
+            </h1>
+            {errorMessage && (
+              <div style={errorStyle}>
+                <span style={{ marginRight: '8px', fontSize: '1.2em' }}>⚠️</span>
+                <span>{errorMessage}</span>
+              </div>
+            )}
             <form onSubmit={handleSubmit}>
               <input
-                type="email"
-                placeholder="Email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                type="text"
+                placeholder="Username"
+                value={username}
+                onChange={(e) => {
+                  setUsername(e.target.value);
+                  if (errorMessage) setErrorMessage('');
+                }}
                 style={inputStyle}
               />
               <input
                 type="password"
                 placeholder="Password"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  if (errorMessage) setErrorMessage('');
+                }}
                 style={inputStyle}
               />
               <button
@@ -248,7 +327,6 @@ function AuthPage() {
                 LOG IN
               </button>
             </form>
-            
             <div style={{ textAlign: 'center' }}>
               <p style={{ color: '#666', fontFamily: 'Arial, sans-serif' }}>Don't have an account?</p>
               <button
@@ -271,8 +349,6 @@ function AuthPage() {
           </div>
         )}
       </div>
-      
-      {/* Bouton de retour à l'accueil */}
       <a
         href="/"
         onClick={handleNavigateHome}
@@ -292,10 +368,7 @@ function AuthPage() {
         onMouseEnter={(e) => e.currentTarget.style.color = '#D35400'}
         onMouseLeave={(e) => e.currentTarget.style.color = 'white'}
       >
-        <span style={{ 
-          marginRight: '5px', 
-          fontSize: '20px'
-        }}>&#8592;</span> 
+        <span style={{ marginRight: '5px', fontSize: '20px' }}>&#8592;</span>
         <span>Retour à l'accueil</span>
       </a>
     </div>
