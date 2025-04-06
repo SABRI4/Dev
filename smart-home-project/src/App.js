@@ -2,8 +2,8 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import HomePage from './pages/Home/HomePage';
 import AuthPage from './pages/Auth/AuthPage';
-
-import ModuleInformation from './pages/ModuleInformation/ModuleInformation'; // Importez la nouvelle page
+import ModuleInformation from './pages/ModuleInformation/ModuleInformation';
+import ModuleGestion from './pages/ModuleGestion/ModuleGestion'; // New import
 
 function App() {
   return (
@@ -11,7 +11,8 @@ function App() {
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/auth" element={<AuthPage />} />
-        <Route path="/module-information" element={<ModuleInformation />} /> {/* Nouvelle route */}
+        <Route path="/module-information" element={<ModuleInformation />} />
+        <Route path="/module-gestion" element={<ModuleGestion />} /> {/* New route */}
       </Routes>
     </Router>
   );
