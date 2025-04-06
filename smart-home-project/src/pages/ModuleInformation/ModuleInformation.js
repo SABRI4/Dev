@@ -88,6 +88,44 @@ function ModuleInformation() {
         overflow: 'hidden',
       }}
     >
+      {/* Overlay d'assombrissement avec effet de flou */}
+      <div style={{ 
+        position: 'absolute', 
+        top: 0, 
+        left: 0, 
+        right: 0, 
+        bottom: 0, 
+        backgroundColor: 'rgba(0,0,0,0.4)', 
+        backdropFilter: 'blur(8px)', 
+        zIndex: 1 
+      }} />
+
+      {/* Bouton de retour à l'accueil */}
+      <Link
+        to="/"
+        style={{
+          position: 'absolute',
+          top: '80px',
+          left: '20px',
+          zIndex: 3,
+          textDecoration: 'none',
+          color: 'white',
+          display: 'flex',
+          alignItems: 'center',
+          fontFamily: 'Arial, sans-serif',
+          transition: 'all 0.3s ease',
+          cursor: 'pointer'
+        }}
+        onMouseEnter={(e) => e.currentTarget.style.color = '#D35400'}
+        onMouseLeave={(e) => e.currentTarget.style.color = 'white'}
+      >
+        <span style={{
+          marginRight: '5px',
+          fontSize: '20px'
+        }}>&#8592;</span>
+        <span>Retour à l'accueil</span>
+      </Link>
+
       {/* Background Image */}
       <div 
         style={{
