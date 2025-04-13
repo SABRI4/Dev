@@ -8,6 +8,14 @@ import { jsPDF } from 'jspdf';
 import 'jspdf-autotable';
 
 function ModuleGestion() {
+    const [user, setUser] = useState(null);
+    useEffect(() => {
+      const storedUser = localStorage.getItem('user');
+      if (storedUser) {
+        setUser(JSON.parse(storedUser));
+      }
+    }, []);
+
 
   const navigate = useNavigate(); // Ajout de la navigation
   const [isNavigating, setIsNavigating] = useState(false); // Nouvel état pour la navigation
@@ -653,36 +661,83 @@ function ModuleGestion() {
         <span>Retour à l'accueil</span>
       </Link>
 
-      {/* Header */}
-      <header style={styles.header}>
-        <img src={logoImage} alt="CYHOME Logo" style={{ height: '50px' }} />
-        <h1 style={{ margin: 0, fontSize: '1.5rem', color: '#D35400' }}>Module Gestion</h1>
-        <Link
-          to="/auth"
+     {/* Header */}
+<header style={styles.header}>
+  <img src={logoImage} alt="CYHOME Logo" style={{ height: '50px' }} />
+  <h1 style={{ margin: 0, fontSize: '1.5rem', color: '#D35400' }}>Module Gestion</h1>
+  {user ? (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+      <div style={{ display: 'flex', alignItems: 'center' }}>
+        <img
+          src={user.photo}
+          alt="Profil"
           style={{
-            color: '#D35400',
-            padding: '0.4rem 1rem',
-            borderRadius: '5px',
-            border: '2px solid #D35400',
-            textDecoration: 'none',
-            fontWeight: 'bold',
-            transition: 'all 0.3s ease',
-            backgroundColor: 'transparent',
-            whiteSpace: 'nowrap',
-            fontSize: '0.9rem',
+            height: '40px',
+            width: '40px',
+            borderRadius: '50%',
+            objectFit: 'cover',
+            marginRight: '8px'
           }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = '#D35400';
-            e.currentTarget.style.color = 'white';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = 'transparent';
-            e.currentTarget.style.color = '#D35400';
-          }}
-        >
-          Log in / Sign up
-        </Link>
-      </header>
+        />
+        <span style={{ color: '#D35400', fontWeight: 'bold' }}>
+          {user.username} ({user.role}) - {user.points} pts
+        </span>
+      </div>
+      <button
+        onClick={() => {
+          localStorage.removeItem("user");
+          navigate("/auth");
+        }}
+        style={{
+          color: '#D35400',
+          padding: '0.4rem 1rem',
+          borderRadius: '5px',
+          border: '2px solid #D35400',
+          backgroundColor: 'transparent',
+          fontWeight: 'bold',
+          cursor: 'pointer'
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.backgroundColor = '#D35400';
+          e.currentTarget.style.color = 'white';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.backgroundColor = 'transparent';
+          e.currentTarget.style.color = '#D35400';
+        }}
+      >
+        Se déconnecter
+      </button>
+    </div>
+  ) : (
+    <Link
+      to="/auth"
+      style={{
+        color: '#D35400',
+        padding: '0.4rem 1rem',
+        borderRadius: '5px',
+        border: '2px solid #D35400',
+        textDecoration: 'none',
+        fontWeight: 'bold',
+        transition: 'all 0.3s ease',
+        backgroundColor: 'transparent',
+        whiteSpace: 'nowrap',
+        fontSize: '0.9rem',
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.backgroundColor = '#D35400';
+        e.currentTarget.style.color = 'white';
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.backgroundColor = 'transparent';
+        e.currentTarget.style.color = '#D35400';
+      }}
+    >
+      Log in / Sign up
+    </Link>
+  )}
+    </header>
+
 
       {/* Contenu Principal */}
       <div style={{

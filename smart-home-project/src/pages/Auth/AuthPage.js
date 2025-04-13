@@ -213,12 +213,17 @@ function AuthPage() {
             <form onSubmit={handleSubmit}>
               {/* Sélection de photo de profil */}
               <div style={imageUploadStyle}>
-                <img 
-                  src={previewURL || "https://via.placeholder.com/120"} 
-                  alt="Profile Preview" 
-                  style={imagePreviewStyle} 
+              <img 
+                src={previewURL || "/default-avatar.png"} 
+                alt="Profile Preview" 
+                style={imagePreviewStyle}
+                onError={(e) => {
+                  if (e.target.src.indexOf("default-avatar.png") === -1) {
+                    e.target.src = "/default-avatar.png";
+                  }
+                }}
                 />
-                
+
                 <input 
                   type="file"
                   ref={fileInputRef}
