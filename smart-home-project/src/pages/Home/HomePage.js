@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import backgroundImage from '../../Pictures/kitchen-background.jpg';
 // Importez vos logos
-import logoImage from '../../Pictures/cyhome-logo.png'; // Ajustez le chemin selon votre structure
-import cytechLogo from '../../Pictures/cytech-logo.png'; // Ajoutez ce logo à votre projet
+import logoImage from '../../Pictures/cyhome-logo.png';
+import cytechLogo from '../../Pictures/cytech-logo.png';
 
 function HomePage() {
   const navigate = useNavigate();
@@ -43,10 +43,10 @@ function HomePage() {
   }, [lastScrollY, showHeader, showFooter]);
   
   const modules = [
-    { name: "Module Information", description: "Accès aux informations générales" },
-    { name: "Module Visualisation", description: "Visualisation des données et profils" },
-    { name: "Module Gestion", description: "Gestion des objets connectés" },
-    { name: "Module Administration", description: "Panneau de contrôle administrateur" }
+    { name: "Module Information", description: "Accès aux informations générales", path: "/module-information" },
+    { name: "Module Visualisation", description: "Visualisation des données et profils", path: "/module-visualisation" },
+    { name: "Module Gestion", description: "Gestion des objets connectés", path: "/module-gestion" },
+    { name: "Module Administration", description: "Panneau de contrôle administrateur", path: "/module-administration" }
   ];
 
   // Liste des créateurs originale avec emails
@@ -58,8 +58,18 @@ function HomePage() {
     { name: "Clément OTERO", email: "clement.otero@example.com" }
   ];
 
-  // Fonction de navigation avec transition
-  const handleNavigation = (e) => {
+  // Fonction de navigation avec transition pour l'authentification
+  const handleAuthNavigation = (e) => {
+    e.preventDefault();
+    setIsNavigating(true);
+    
+    setTimeout(() => {
+      navigate('/auth');
+    }, 500);
+  };
+
+  // Fonction de navigation avec transition pour les modules
+  const handleModuleNavigation = (modulePath, e) => {
     e.preventDefault();
     
     // Définir l'état de navigation
@@ -67,7 +77,7 @@ function HomePage() {
     
     // Attendre la fin de l'animation avant de naviguer
     setTimeout(() => {
-      navigate('/auth');
+      navigate(modulePath);
     }, 500);
   };
 
@@ -93,28 +103,26 @@ function HomePage() {
         zIndex: 1 
       }} />
       
-      {/* Suppression de l'élément de fond sous le footer pour laisser voir l'image de fond */}  
-
       <div style={{ position: 'relative', zIndex: 2 }}>
         {/* Espace réservé pour compenser le header fixe */}
         <div style={{ height: '80px' }}></div>
-        {/* Nouveau header inspiré de l'image avec barre orange en haut et fond semi-transparent */}
+        {/* Header */}
         <header style={{ 
           display: 'flex', 
           justifyContent: 'space-between', 
           alignItems: 'center',
           padding: '0.5rem 1rem', 
-          backgroundColor: 'rgba(255, 255, 255, 0.9)', // Fond semi-transparent
-          backdropFilter: 'blur(5px)', // Effet de flou pour améliorer la lisibilité
+          backgroundColor: 'rgba(255, 255, 255, 0.9)',
+          backdropFilter: 'blur(5px)',
           borderBottom: '1px solid #e0e0e0',
           boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-          borderBottom: '3px solid #D35400', // Ajout de la barre orange en haut
+          borderBottom: '3px solid #D35400',
           position: 'fixed',
-          top: showHeader ? 0 : '-100px', // Déplace le header en dehors de l'écran quand caché
+          top: showHeader ? 0 : '-100px',
           left: 0,
           right: 0,
           zIndex: 10,
-          transition: 'top 0.3s ease-in-out' // Animation fluide
+          transition: 'top 0.3s ease-in-out'
         }}>
           {/* Logo et nom du site à gauche */}
           <div style={{ 
@@ -176,7 +184,7 @@ function HomePage() {
             {/* Bouton de connexion/inscription */}
             <a 
               href="/auth"
-              onClick={handleNavigation}
+              onClick={handleAuthNavigation}
               style={{ 
                 color: '#D35400',
                 padding: '0.4rem 1rem',
@@ -187,8 +195,8 @@ function HomePage() {
                 transition: 'all 0.3s ease',
                 backgroundColor: 'transparent',
                 whiteSpace: 'nowrap',
-                fontSize: '0.9rem', // Ajout de la taille de police
-                  }}
+                fontSize: '0.9rem',
+              }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.backgroundColor = '#D35400';
                 e.currentTarget.style.color = 'white';
@@ -210,7 +218,7 @@ function HomePage() {
           justifyContent: 'center', 
           alignItems: 'center', 
           padding: '2rem',
-          marginBottom: '110px' // Espace augmenté pour le footer
+          marginBottom: '110px'
         }}>
           <div style={{ 
             display: 'grid', 
@@ -253,7 +261,8 @@ function HomePage() {
                   lineHeight: '1.6'
                 }}>{module.description}</p>
                 <Link 
-                  to={`/${module.name.toLowerCase().replace(/\s+/g, '-')}`}
+                  to={module.path}
+                  onClick={(e) => handleModuleNavigation(module.path, e)}
                   style={{ 
                     color: '#D35400',
                     padding: '0.4rem 1rem',
@@ -281,19 +290,19 @@ function HomePage() {
           </div>
         </main>
 
-        {/* Footer avec animation de transition et fond transparent */}
+        {/* Footer */}
         <footer style={{ 
           position: 'fixed', 
-          bottom: showFooter ? 0 : '-100px', // Déplace le footer en dehors de l'écran quand caché
+          bottom: showFooter ? 0 : '-100px',
           width: '100%', 
           padding: '0.3rem 1rem', 
-          backgroundColor: 'rgba(245, 245, 245, 0.85)', // Fond semi-transparent
-          backdropFilter: 'blur(5px)', // Effet de flou pour améliorer la lisibilité
+          backgroundColor: 'rgba(245, 245, 245, 0.85)',
+          backdropFilter: 'blur(5px)',
           borderTop: '3px solid #D35400',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          transition: 'bottom 0.3s ease-in-out', // Animation fluide
+          transition: 'bottom 0.3s ease-in-out',
           zIndex: 10
         }}>
           {/* Section gauche avec logo CYHOME et créateurs */}
@@ -311,7 +320,7 @@ function HomePage() {
               }} 
             />
             
-            {/* Liste des emails et noms des créateurs (déplacée à gauche) */}
+            {/* Liste des emails et noms des créateurs */}
             <div>
               {creators.map((creator, index) => (
                 <div key={index} style={{ marginBottom: '2px' }}>
@@ -345,9 +354,9 @@ function HomePage() {
             </div>
           </div>
           
-          {/* Logo CYTECH déplacé vers la gauche pour être entièrement visible */}
+          {/* Logo CYTECH */}
           <div style={{
-            paddingRight: '50px' // Ajoute un padding à droite pour déplacer le logo vers la gauche
+            paddingRight: '50px'
           }}>
             <img 
               src={cytechLogo} 
@@ -355,7 +364,7 @@ function HomePage() {
               style={{ 
                 height: '50px',
                 position: 'relative',
-                right: '30px' // Déplace l'image vers la gauche
+                right: '30px'
               }} 
             />
           </div>
