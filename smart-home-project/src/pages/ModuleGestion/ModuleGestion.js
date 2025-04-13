@@ -7,6 +7,58 @@ import backgroundImage from '../../Pictures/kitchen-background.jpg';
 import { jsPDF } from 'jspdf';
 import 'jspdf-autotable';
 
+// Remplacer la section DeviceIcons actuelle par celle-ci :
+const DeviceIcons = {
+  thermostat: (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="40" height="40" fill="#FFFFFF">
+      <path d="M12,22c-4.418,0-8-3.582-8-8c0-3.584,2.385-6.615,5.649-7.605C9.879,6.266,10,6.133,10,6V3c0-0.552,0.448-1,1-1h2 c0.552,0,1,0.448,1,1v3c0,0.133,0.121,0.266,0.351,0.395C17.615,7.385,20,10.416,20,14C20,18.418,16.418,22,12,22z M13,4h-2v2h2V4z M12,20c3.314,0,6-2.686,6-6c0-3.314-2.686-6-6-6s-6,2.686-6,6C6,17.314,8.686,20,12,20z M11,14.732V10c0-0.552,0.448-1,1-1 s1,0.448,1,1v4.732c0.616,0.357,1,1.025,1,1.768c0,1.105-0.895,2-2,2s-2-0.895-2-2C10,15.757,10.384,15.089,11,14.732z"/>
+    </svg>
+  ),
+  climatiseur: (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="40" height="40" fill="#FFFFFF">
+      <path d="M21,9h-7V7c0-0.55-0.45-1-1-1h-2c-0.55,0-1,0.45-1,1v2H3C2.45,9,2,9.45,2,10v4c0,0.55,0.45,1,1,1h7v2c0,0.55,0.45,1,1,1h2 c0.55,0,1-0.45,1-1v-2h7c0.55,0,1-0.45,1-1v-4C22,9.45,21.55,9,21,9z M20,13h-7c-0.55,0-1,0.45-1,1v2h-2v-2c0-0.55-0.45-1-1-1H4 v-2h7c0.55,0,1-0.45,1-1V8h2v2c0,0.55,0.45,1,1,1h5V13z"/>
+      <path d="M9,16h1.5v1.5H9V16z"/>
+      <path d="M13.5,16H15v1.5h-1.5V16z"/>
+      <path d="M9,12h1.5v1.5H9V12z"/>
+      <path d="M13.5,12H15v1.5h-1.5V12z"/>
+    </svg>
+  ),
+  volets: (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="40" height="40" fill="#FFFFFF">
+      <path d="M19,4H5C3.89,4,3,4.9,3,6v12c0,1.1,0.9,2,2,2h14c1.1,0,2-0.9,2-2V6C21,4.9,20.1,4,19,4z M19,18H5V6h14V18z"/>
+      <path d="M7,9h10v2H7V9z"/>
+      <path d="M7,12h10v2H7V12z"/>
+      <path d="M7,15h10v2H7V15z"/>
+    </svg>
+  ),
+  lumière: (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="40" height="40" fill="#FFFFFF">
+      <path d="M12,2C8.13,2,5,5.13,5,9c0,2.38,1.19,4.47,3,5.74V17c0,0.55,0.45,1,1,1h1v2c0,0.55,0.45,1,1,1h2c0.55,0,1-0.45,1-1v-2h1 c0.55,0,1-0.45,1-1v-2.26c1.81-1.27,3-3.36,3-5.74C19,5.13,15.87,2,12,2z"/>
+    </svg>
+  ),
+  sécurité: (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="40" height="40" fill="#FFFFFF">
+      <path d="M12,2L4,5v6.09c0,5.05,3.41,9.76,8,10.91c4.59-1.15,8-5.86,8-10.91V5L12,2z M18,11.09c0,4-2.55,7.7-6,8.83 c-3.45-1.13-6-4.82-6-8.83V6.31l6-2.12l6,2.12V11.09z"/>
+      <path d="M12,7c-2.76,0-5,2.24-5,5s2.24,5,5,5s5-2.24,5-5S14.76,7,12,7z M12,15c-1.66,0-3-1.34-3-3s1.34-3,3-3s3,1.34,3,3 S13.66,15,12,15z"/>
+    </svg>
+  ),
+  météo: (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="40" height="40" fill="#FFFFFF">
+      <path d="M19.35,10.04C18.67,6.59,15.64,4,12,4C9.11,4,6.6,5.64,5.35,8.04C2.34,8.36,0,10.91,0,14c0,3.31,2.69,6,6,6h13 c2.76,0,5-2.24,5-5C24,12.36,21.95,10.22,19.35,10.04z"/>
+    </svg>
+  )
+};
+
+const getDeviceIcon = (type) => {
+  return DeviceIcons[type] || (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10"/>
+      <line x1="12" y1="8" x2="12" y2="16"/>
+      <line x1="8" y1="12" x2="16" y2="12"/>
+    </svg>
+  );
+};
+
 function ModuleGestion() {
     const [user, setUser] = useState(null);
     useEffect(() => {
@@ -883,7 +935,21 @@ function ModuleGestion() {
                 }}
               >
                 <h3 style={{ color: '#fff', margin: '0 0 0.5rem 0' }}>{device.name}</h3>
-                <p style={{ color: '#ddd', margin: '0 0 0.5rem 0' }}>Type : {device.type}</p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                  <p style={{ color: '#ddd', margin: '0' }}>Type : {device.type}</p>
+                  <div style={{
+                    backgroundColor: '#D35400',
+                    borderRadius: '50%',
+                    width: '25px',
+                    height: '25px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '2px'
+                  }}>
+                    {DeviceIcons[device.type]}
+                  </div>
+                </div>
                 <p style={{ color: '#ddd', margin: '0 0 0.5rem 0' }}>Statut : {device.status}</p>
                 <p style={{ color: '#ddd', margin: '0' }}>Consommation : {device.energyConsumption} W</p>
               </div>
