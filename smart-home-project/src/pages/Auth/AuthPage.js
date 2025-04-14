@@ -68,24 +68,71 @@ function AuthPage() {
     fileInputRef.current.click();
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    
+  
     if (isSignUp) {
-      console.log('Inscription', { 
-        email, 
-        password, 
-        username, 
-        age, 
-        gender, 
-        birthdate, 
-        memberType,
-        profileImage: profileImage ? profileImage.name : null
-      });
+      const formData = new FormData();
+      formData.append("username", username);
+      formData.append("email", email);
+      formData.append("password", password);
+      formData.append("birthdate", birthdate);
+      formData.append("gender", gender);
+      formData.append("age", age);
+      formData.append("member_type", memberType);
+      if (profileImage) {
+        formData.append("photo", profileImage);
+      }
+  
+      try {
+        const response = await fetch("http://localhost:3020/plateforme/smart-home-project/api/signup.php", {
+          method: "POST",
+          body: formData,
+          credentials: "include", // pour les cookies si besoin
+        });
+  
+        const data = await response.json();
+        console.log(data);
+  
+        if (data.status === "success") {
+          alert("Compte créé avec succès !");
+          navigate("/"); // ou "/dashboard" si tu veux rediriger ailleurs
+        } else {
+          alert("Erreur lors de l'inscription : " + data.message);
+        }
+      } catch (error) {
+        console.error("Erreur lors de la requête :", error);
+        alert("Une erreur réseau s’est produite.");
+      }
+  
     } else {
-      console.log('Connexion', { email, password });
+      // Connexion classique
+      try {
+        const response = await fetch("http://localhost:3020/plateforme/smart-home-project/api/login.php", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          credentials: "include",
+          body: JSON.stringify({ email, password })
+        });
+  
+        const data = await response.json();
+        console.log(data);
+  
+        if (data.status === "success") {
+          localStorage.setItem("user", JSON.stringify(data.user));
+          navigate("/");
+        } else {
+          alert("Erreur lors de la connexion : " + data.message);
+        }
+      } catch (error) {
+        console.error("Erreur lors de la connexion :", error);
+        alert("Une erreur réseau s’est produite.");
+      }
     }
   };
+  
 
   // Style de la page entière (avec animation d'entrée/sortie)
   const pageStyle = {

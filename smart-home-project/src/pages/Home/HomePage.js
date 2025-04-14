@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import backgroundImage from '../../Pictures/kitchen-background.jpg';
-// Importez vos logos
 import logoImage from '../../Pictures/cyhome-logo.png';
 import cytechLogo from '../../Pictures/cytech-logo.png';
 
@@ -11,37 +10,41 @@ function HomePage() {
   const [showHeader, setShowHeader] = useState(true);
   const [showFooter, setShowFooter] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
-  
-  // Gérer le défilement pour montrer/cacher le header et footer
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    const storedUser = localStorage.getItem("user");
+    if (storedUser) {
+      setUser(JSON.parse(storedUser));
+    }
+  }, []);
+
   useEffect(() => {
     const handleScroll = () => {
       const currentScrollY = window.scrollY;
-      
-      // Si on défile vers le bas et le header est visible, cacher le header
       if (currentScrollY > lastScrollY && showHeader && currentScrollY > 50) {
         setShowHeader(false);
-      } 
-      // Si on défile vers le haut et le header est caché, montrer le header
-      else if (currentScrollY < lastScrollY && !showHeader) {
+      } else if (currentScrollY < lastScrollY && !showHeader) {
         setShowHeader(true);
       }
-      
-      // Pour le footer, comportement inverse
       if (currentScrollY > lastScrollY && !showFooter && currentScrollY > 50) {
         setShowFooter(true);
-      } 
-      else if (currentScrollY < lastScrollY && showFooter && 
-              (document.documentElement.scrollHeight - window.innerHeight - currentScrollY > 100)) {
+      } else if (currentScrollY < lastScrollY && showFooter &&
+        (document.documentElement.scrollHeight - window.innerHeight - currentScrollY > 100)) {
         setShowFooter(false);
       }
-      
       setLastScrollY(currentScrollY);
     };
-    
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, [lastScrollY, showHeader, showFooter]);
-  
+
+  const handleLogout = () => {
+    localStorage.removeItem("user");
+    setUser(null);
+    navigate("/auth");
+  };
+
   const modules = [
     { name: "Module Information", description: "Accès aux informations générales", path: "/module-information" },
     { name: "Module Visualisation", description: "Visualisation des données et profils", path: "/module-visualisation" },
@@ -49,7 +52,6 @@ function HomePage() {
     { name: "Module Administration", description: "Panneau de contrôle administrateur", path: "/module-administration" }
   ];
 
-  // Liste des créateurs originale avec emails
   const creators = [
     { name: "EL HARSAL Abdelah", email: "abdelah.elharsal@example.com" },
     { name: "HARAR Sofien", email: "sofien.harar@example.com" },
@@ -58,24 +60,17 @@ function HomePage() {
     { name: "Clément OTERO", email: "clement.otero@example.com" }
   ];
 
-  // Fonction de navigation avec transition pour l'authentification
   const handleAuthNavigation = (e) => {
     e.preventDefault();
     setIsNavigating(true);
-    
     setTimeout(() => {
       navigate('/auth');
     }, 500);
   };
 
-  // Fonction de navigation avec transition pour les modules
   const handleModuleNavigation = (modulePath, e) => {
     e.preventDefault();
-    
-    // Définir l'état de navigation
     setIsNavigating(true);
-    
-    // Attendre la fin de l'animation avant de naviguer
     setTimeout(() => {
       navigate(modulePath);
     }, 500);
@@ -102,11 +97,9 @@ function HomePage() {
         backdropFilter: 'blur(8px)', 
         zIndex: 1 
       }} />
-      
+
       <div style={{ position: 'relative', zIndex: 2 }}>
-        {/* Espace réservé pour compenser le header fixe */}
         <div style={{ height: '80px' }}></div>
-        {/* Header */}
         <header style={{ 
           display: 'flex', 
           justifyContent: 'space-between', 
@@ -114,8 +107,6 @@ function HomePage() {
           padding: '0.5rem 1rem', 
           backgroundColor: 'rgba(255, 255, 255, 0.9)',
           backdropFilter: 'blur(5px)',
-          borderBottom: '1px solid #e0e0e0',
-          boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
           borderBottom: '3px solid #D35400',
           position: 'fixed',
           top: showHeader ? 0 : '-100px',
@@ -124,95 +115,100 @@ function HomePage() {
           zIndex: 10,
           transition: 'top 0.3s ease-in-out'
         }}>
-          {/* Logo et nom du site à gauche */}
-          <div style={{ 
-            display: 'flex', 
-            alignItems: 'center'
-          }}>
-            <img 
-              src={logoImage} 
-              alt="CYHOME Logo" 
-              style={{ 
-                height: '50px', 
-                marginRight: '10px' 
-              }} 
-            />
-            <div style={{
-              display: 'flex',
-              flexDirection: 'column'
-            }}>
-              <span style={{ 
-                fontWeight: 'bold',
-                fontSize: '1.2rem',
-                color: '#333',
-                fontFamily: 'Arial, sans-serif'
-              }}>
-                CYHOME
-              </span>
-              <span style={{
-                fontSize: '0.8rem',
-                color: '#666',
-                fontFamily: 'Arial, sans-serif'
-              }}>
-                La maison intelligente, en toute sécurité
-              </span>
+          <div style={{ display: 'flex', alignItems: 'center' }}>
+            <img src={logoImage} alt="CYHOME Logo" style={{ height: '50px', marginRight: '10px' }} />
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              <span style={{ fontWeight: 'bold', fontSize: '1.2rem', color: '#333' }}>CYHOME</span>
+              <span style={{ fontSize: '0.8rem', color: '#666' }}>La maison intelligente, en toute sécurité</span>
             </div>
           </div>
-          
-          {/* Message central */}
-          <div style={{
-            flex: 1,
-            textAlign: 'center',
-            borderLeft: '2px solid #D35400',
-            paddingLeft: '20px',
-            margin: '0 20px'
-          }}>
-            <span style={{ 
-              fontFamily: 'Arial, sans-serif',
-              fontSize: '1.1rem',
-              color: '#333'
-            }}>
+          {!user && (
+          <div style={{ flex: 1, textAlign: 'center', borderLeft: '2px solid #D35400', paddingLeft: '20px', margin: '0 20px' }}>
+            <span style={{ fontSize: '1.1rem', color: '#333' }}>
               Connectez-vous pour accéder à votre maison intelligente
             </span>
           </div>
-          
-          {/* Boutons à droite */}
-          <div style={{
-            display: 'flex',
-            alignItems: 'center'
-          }}>
-            {/* Bouton de connexion/inscription */}
-            <a 
-              href="/auth"
-              onClick={handleAuthNavigation}
-              style={{ 
+          )}
+          <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '15px',
+        border: '2px solid #D35400',  
+        borderRadius: '10px',        
+        padding: '10px'               
+      }}
+        >
+          {user ? (
+            <>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                <div style={{ display: 'flex', alignItems: 'center' }}>
+                  <img
+                    src={user.photo || "/default-avatar.png"}
+                    alt="Profil"
+                    style={{
+                      height: '40px',
+                      width: '40px',
+                      borderRadius: '50%',
+                      objectFit: 'cover',
+                      marginRight: '8px'
+                    }}
+                  />
+                  <span style={{ color: '#D35400', fontWeight: 'bold' }}>
+                    {user.username} ({user.role}) - {user.points} pts
+                  </span>
+                </div>
+                <button
+                  onClick={handleLogout}
+                  style={{
+                    color: '#D35400',
+                    padding: '0.4rem 1rem',
+                    borderRadius: '5px',
+                    border: '2px solid #D35400',
+                    backgroundColor: 'transparent',
+                    fontWeight: 'bold',
+                    cursor: 'pointer'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = '#D35400';
+                    e.currentTarget.style.color = 'white';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                    e.currentTarget.style.color = '#D35400';
+                  }}
+                >
+                  Se déconnecter
+                </button>
+              </div>
+            </>
+          ) : (
+            <Link
+              to="/auth"
+              style={{
                 color: '#D35400',
                 padding: '0.4rem 1rem',
                 borderRadius: '5px',
                 border: '2px solid #D35400',
                 textDecoration: 'none',
                 fontWeight: 'bold',
-                transition: 'all 0.3s ease',
-                backgroundColor: 'transparent',
-                whiteSpace: 'nowrap',
-                fontSize: '0.9rem',
+                backgroundColor: 'transparent'
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.backgroundColor = '#D35400';
                 e.currentTarget.style.color = 'white';
-                e.currentTarget.style.boxShadow = '0 4px 6px rgba(0,0,0,0.1)';
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.backgroundColor = 'transparent';
                 e.currentTarget.style.color = '#D35400';
-                e.currentTarget.style.boxShadow = 'none';
               }}
             >
               Connexion / Inscription
-            </a>
-          </div>
-        </header>
+            </Link>
+          )}
+        </div>
 
+        </header>
         <main style={{ 
           display: 'flex', 
           justifyContent: 'center', 

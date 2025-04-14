@@ -9,60 +9,66 @@ header("Access-Control-Allow-Credentials: true");
 header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type, Authorization");
 
-// Gérer seulement la méthode POST
-if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    // Échapper les entrées pour éviter les injections SQL
-    $username = $conn->real_escape_string($_POST['username']);
-    $password = $_POST['password'];
+// Gérer uniquement la méthode POST
+if ($_SERVER["REQUEST_METHOD"] === "POST") {
+    // Lire les données JSON envoyées
+    $data = json_decode(file_get_contents("php://input"), true);
 
-    // Sélectionner les informations nécessaires depuis la table users
-    $sql = "SELECT id, username, password, photo, role, points FROM users WHERE username = ?";
+    if (!isset($data['email']) || !isset($data['password'])) {
+        echo json_encode([
+            'status' => 'error',
+            'message' => 'Champs requis manquants.'
+        ]);
+        exit();
+    }
+
+    $email = $conn->real_escape_string($data['email']);
+    $password = $data['password'];
+
+    // Préparer la requête SQL
+    $sql = "SELECT id, username, email, password, photo, role, points FROM users WHERE email = ?";
     $stmt = $conn->prepare($sql);
-    $stmt->bind_param("s", $username);
+    $stmt->bind_param("s", $email);
     $stmt->execute();
     $result = $stmt->get_result();
-    
+
+    // Vérifier si l'utilisateur existe
     if ($user = $result->fetch_assoc()) {
-        // Vérification du mot de passe haché
         if (password_verify($password, $user['password'])) {
-            // Stocker les infos utilisateur en session (facultatif)
+            // Authentification réussie
             $_SESSION['user_id']   = $user['id'];
             $_SESSION['username']  = $user['username'];
             $_SESSION['photo']     = $user['photo'];
             $_SESSION['role']      = $user['role'];
             $_SESSION['points']    = $user['points'];
 
-            // Répondre avec du JSON "success" incluant les données utilisateur
             echo json_encode([
-                'status'  => 'success',
+                'status' => 'success',
                 'message' => 'Connexion réussie.',
-                'user'    => [
+                'user' => [
                     'id'       => $user['id'],
                     'username' => $user['username'],
-                    'role'     => $user['role'],
+                    'email'    => $user['email'],
                     'photo'    => $user['photo'],
+                    'role'     => $user['role'],
                     'points'   => $user['points']
                 ]
             ]);
             exit();
         } else {
-            // Mot de passe incorrect
             echo json_encode([
-                'status'  => 'error',
+                'status' => 'error',
                 'message' => 'Mot de passe incorrect.'
             ]);
             exit();
         }
     } else {
-        // Aucun utilisateur trouvé
         echo json_encode([
-            'status'  => 'error',
+            'status' => 'error',
             'message' => 'Utilisateur non trouvé.'
         ]);
         exit();
     }
-
-    $stmt->close();
     $conn->close();
 }
 ?>
