@@ -3,8 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import HomePage from './pages/Home/HomePage';
 import AuthPage from './pages/Auth/AuthPage';
 import ModuleInformation from './pages/ModuleInformation/ModuleInformation';
-import ModuleGestion from './pages/ModuleGestion/ModuleGestion';
-import ModuleVisualisation from './pages/ModuleVisualisation/ModuleVisualisation';
+import ModuleGestion from './pages/ModuleGestion/ModuleGestion'; // New import
 
 function App() {
   return (
@@ -13,8 +12,7 @@ function App() {
         <Route path="/" element={<HomePage />} />
         <Route path="/auth" element={<AuthPage />} />
         <Route path="/module-information" element={<ModuleInformation />} />
-        <Route path="/module-gestion" element={<ModuleGestion />} />
-        <Route path="/module-visualisation" element={<ModuleVisualisation />} /> {/* New route */}
+        <Route path="/module-gestion" element={<ModuleGestion />} /> {/* New route */}
       </Routes>
     </Router>
   );

@@ -61,13 +61,32 @@ const getDeviceIcon = (type) => {
 
 function ModuleGestion() {
     const [user, setUser] = useState(null);
-    useEffect(() => {
-      const storedUser = localStorage.getItem('user');
-      if (storedUser) {
-        setUser(JSON.parse(storedUser));
-      }
-    }, []);
 
+    const API_BASE = 'http://localhost:3020/plateforme/smart-home-project/api/device.php';
+
+    const [connectedDevices, setConnectedDevices] = useState([]);
+    const [loading, setLoading]   = useState(true);
+    const [error,   setError]     = useState(null);
+    const fetchDevices = async () => {
+      try {
+        const res = await fetch(API_BASE, { credentials: 'include' });
+        if (!res.ok) throw new Error('Erreur API');
+        const data = await res.json();
+        setConnectedDevices(data.devices);
+        setLoading(false);
+      } catch (e) {
+        setError(e.message);
+        setLoading(false);
+      }
+    };
+    
+    const addDevice    = async (payload)    => (await fetch(API_BASE,           { method:'POST', body:JSON.stringify(payload) })).json();
+    const updateDevice = async (payload,id) => (await fetch(`${API_BASE}?id=${id}`, { method:'PUT',  body:JSON.stringify(payload) })).json();
+    const deleteDevice = async (id)         =>        fetch(`${API_BASE}?id=${id}`, { method:'DELETE' });
+
+    useEffect(() => {
+      fetchDevices();
+    }, []);
 
   const navigate = useNavigate(); // Ajout de la navigation
   const [isNavigating, setIsNavigating] = useState(false); // Nouvel état pour la navigation
@@ -82,107 +101,6 @@ function ModuleGestion() {
     }, 500);
   };
 
-  // États pour la gestion des objets connectés
-  const [connectedDevices, setConnectedDevices] = useState([
-    {
-      id: 1,
-      name: 'Thermostat Salon',
-      type: 'thermostat',
-      status: 'actif',
-      room: 'Salon',
-      temperature: 22,
-      targetTemperature: 23,
-      energyConsumption: 45,
-      lastMaintenance: '2024-03-15',
-      batteryLevel: 85
-    },
-    {
-      id: 2,
-      name: 'Climatiseur Chambre',
-      type: 'climatiseur',
-      status: 'inactif',
-      room: 'Chambre Principale',
-      currentMode: 'Veille',
-      temperature: 18,
-      energyConsumption: 0,
-      lastMaintenance: '2024-02-20',
-      batteryLevel: 100
-    },
-    {
-      id: 3,
-      name: 'Volets Automatiques Salon',
-      type: 'volets',
-      status: 'actif',
-      room: 'Salon',
-      openPercentage: 50,
-      currentPosition: 'Mi-ouverts',
-      energyConsumption: 15,
-      lastMaintenance: '2024-04-01',
-      batteryLevel: 75
-    },
-    {
-      id: 4,
-      name: 'Capteur de Présence Entrée',
-      type: 'sécurité',
-      status: 'actif',
-      room: 'Entrée',
-      movementDetected: false,
-      lastMovement: '2024-04-05 10:35:22',
-      energyConsumption: 5,
-      lastMaintenance: '2024-03-25',
-      batteryLevel: 90
-    },
-    {
-      id: 5,
-      name: 'Station Météo Extérieure',
-      type: 'météo',
-      status: 'actif',
-      room: 'Extérieur',
-      temperature: 15,
-      humidity: 65,
-      windSpeed: 12,
-      precipitation: 0,
-      energyConsumption: 10,
-      lastMaintenance: '2024-03-10',
-      batteryLevel: 95
-    },
-    {
-      id: 6,
-      name: 'Caméra de Sécurité Jardin',
-      type: 'sécurité',
-      status: 'inactif',
-      room: 'Jardin',
-      recordingStatus: 'Arrêté',
-      motionSensitivity: 'Moyen',
-      energyConsumption: 0,
-      lastMaintenance: '2024-02-15',
-      batteryLevel: 60
-    },
-    {
-      id: 7,
-      name: 'Éclairage Salon Intelligent',
-      type: 'lumière',
-      status: 'actif',
-      room: 'Salon',
-      brightness: 70,
-      colorTemperature: 3000,
-      energyConsumption: 25,
-      lastMaintenance: '2024-03-30',
-      batteryLevel: 100
-    },
-    {
-      id: 8,
-      name: 'Détecteur de Fumée Cuisine',
-      type: 'sécurité',
-      status: 'actif',
-      room: 'Cuisine',
-      smokeDetected: false,
-      carbonMonoxideLevel: 0,
-      energyConsumption: 3,
-      lastMaintenance: '2024-03-20',
-      batteryLevel: 88
-    }
-  ]);
 
   // États pour les filtres et la recherche
   const [searchTerm, setSearchTerm] = useState('');
@@ -242,92 +160,33 @@ function ModuleGestion() {
   const filteredDevices = connectedDevices.filter(device =>
     (typeFilter === 'all' || device.type === typeFilter) &&
     (statusFilter === 'all' || device.status === statusFilter) &&
-    device.name.toLowerCase().includes(searchTerm.toLowerCase())
+    (device.name?.toLowerCase().includes(searchTerm.toLowerCase()))
   );
+  
 
   // Fonction pour ouvrir les détails d'un appareil
   const handleDeviceDetails = (device) => {
     setSelectedDevice(device);
   };
 
-  // Fonction pour gérer le changement des champs du nouvel appareil
-  const handleNewDeviceChange = (e) => {
-    const { name, value } = e.target;
-    setNewDevice({
-      ...newDevice,
-      [name]: value
-    });
-  };
-  
-  // Fonction pour ajouter un nouvel appareil
-  const handleAddDevice = () => {
-    // Création d'un objet avec les propriétés de base et spécifiques au type
-    const deviceToAdd = {
-      id: connectedDevices.length + 1,
-      ...newDevice
+    // Fonction pour gérer le changement des champs du nouvel appareil
+    const handleNewDeviceChange = (e) => {
+      const { name, value } = e.target;
+      setNewDevice({
+        ...newDevice,
+        [name]: value
+      });
     };
-    
-    // Ajout de propriétés spécifiques selon le type d'appareil
-    switch(newDevice.type) {
-      case 'thermostat':
-        deviceToAdd.temperature = 20;
-        deviceToAdd.targetTemperature = 22;
-        break;
-      case 'climatiseur':
-        deviceToAdd.temperature = 20;
-        deviceToAdd.currentMode = 'Veille';
-        break;
-      case 'volets':
-        deviceToAdd.openPercentage = 0;
-        deviceToAdd.currentPosition = 'Fermés';
-        break;
-      case 'lumière':
-        deviceToAdd.brightness = 50;
-        deviceToAdd.colorTemperature = 3000;
-        break;
-      case 'sécurité':
-        if (newDevice.name.toLowerCase().includes('caméra')) {
-          deviceToAdd.recordingStatus = 'Arrêté';
-          deviceToAdd.motionSensitivity = 'Moyen';
-        } else if (newDevice.name.toLowerCase().includes('présence') || 
-                  newDevice.name.toLowerCase().includes('presence') ||
-                  newDevice.name.toLowerCase().includes('mouvement')) {
-          deviceToAdd.movementDetected = false;
-          deviceToAdd.lastMovement = new Date().toISOString().replace('T', ' ').substr(0, 19);
-        } else if (newDevice.name.toLowerCase().includes('fumée') || 
-                  newDevice.name.toLowerCase().includes('fumee')) {
-          deviceToAdd.smokeDetected = false;
-          deviceToAdd.carbonMonoxideLevel = 0;
-        }
-        break;
-      case 'météo':
-        deviceToAdd.temperature = 20;
-        if (newDevice.name.toLowerCase().includes('station')) {
-          deviceToAdd.humidity = 50;
-          deviceToAdd.windSpeed = 0;
-          deviceToAdd.precipitation = 0;
-        }
-        break;
-      default:
-        break;
-    }
-    
-    // Ajout de l'appareil à la liste
-    setConnectedDevices([...connectedDevices, deviceToAdd]);
-    
-    // Réinitialisation et fermeture de la modal
-    setNewDevice({
-      name: '',
-      type: 'thermostat',
-      status: 'actif',
-      room: '',
-      energyConsumption: 0,
-      lastMaintenance: new Date().toISOString().split('T')[0],
-      batteryLevel: 100
-    });
-    setShowAddModal(false);
-  };
   
+    // Fonction pour ajouter un nouvel appareil
+    // ****** AJOUT D'UN OBJET ******
+    const handleAddDevice = async () => {
+      const saved = await addDevice(newDevice);      // POST
+      setConnectedDevices([...connectedDevices, saved]);
+      setShowAddModal(false);
+    };
+
+
   // Fonction pour ouvrir la modal de configuration d'un appareil
   const handleOpenConfigModal = (device) => {
     setDeviceToEdit({...device});
@@ -353,22 +212,13 @@ function ModuleGestion() {
   };
   
   // Fonction pour enregistrer les modifications d'un appareil
-  const handleSaveDeviceChanges = () => {
-    // Mise à jour de l'appareil dans la liste
-    const updatedDevices = connectedDevices.map(device => 
-      device.id === deviceToEdit.id ? deviceToEdit : device
-    );
-    
-    setConnectedDevices(updatedDevices);
-    
-    // Mise à jour de l'appareil sélectionné pour l'affichage des détails
-    if (selectedDevice && selectedDevice.id === deviceToEdit.id) {
-      setSelectedDevice(deviceToEdit);
-    }
-    
-    // Fermeture de la modal
-    setShowConfigModal(false);
-  };
+  const handleSaveDeviceChanges = async () => {
+  const saved = await updateDevice(deviceToEdit, deviceToEdit.id); // PUT
+  const updated = connectedDevices.map(d => (d.id === saved.id ? saved : d));
+  setConnectedDevices(updated);
+  setShowConfigModal(false);
+};
+
   
   // Fonction pour demander la suppression d'un appareil
   const handleRequestDeviceDeletion = (deviceId) => {
@@ -376,16 +226,12 @@ function ModuleGestion() {
   };
   
   // Fonction pour confirmer la demande de suppression
-  const handleConfirmDeletion = () => {
+  const handleConfirmDeletion = async () => {
+    await updateDevice({ suppressionDemandee: 1 }, selectedDevice.id); // Flag de demande
     setShowDeleteConfirmation(false);
     setDeletionSuccess(true);
-    
-    // Fermeture automatique du message de succès après 3 secondes
-    setTimeout(() => {
-      setDeletionSuccess(false);
-    }, 3000);
   };
-  
+
   // Fonction pour générer et télécharger un rapport PDF
   const handleGenerateReport = (device) => {
     // Création d'une nouvelle instance de jsPDF
@@ -903,6 +749,8 @@ function ModuleGestion() {
             </select>
           </div>
 
+          {loading && <p style={{color:'#fff'}}>Chargement…</p>}
+          {error   && <p style={{color:'#E74C3C'}}>Erreur : {error}</p>}
           {/* Liste des appareils */}
           <div style={{
             display: 'grid',
