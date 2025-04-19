@@ -96,8 +96,28 @@ function AuthPage() {
   
         if (data.status === "success") {
           alert("Compte créé avec succès !");
-          navigate("/"); // ou "/dashboard" si tu veux rediriger ailleurs
-        } else {
+        
+          // Connexion automatique après inscription
+          const loginResponse = await fetch("http://localhost:3020/plateforme/smart-home-project/api/login.php", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            credentials: "include",
+            body: JSON.stringify({ email, password })
+          });
+        
+          const loginData = await loginResponse.json();
+        
+          if (loginData.status === "success") {
+            localStorage.setItem("user", JSON.stringify(loginData.user));
+            navigate("/"); // Redirection vers la page d'accueil
+          } else {
+            alert("Inscription OK mais connexion impossible : " + loginData.message);
+            setIsSignUp(false); // On bascule vers la page de connexion
+          }
+        }
+        else {
           alert("Erreur lors de l'inscription : " + data.message);
         }
       } catch (error) {

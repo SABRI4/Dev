@@ -1,6 +1,6 @@
 <?php
 session_start();
-include 'connect.php';
+require_once 'connect.php';
 
 // Forcer le type de contenu JSON et gérer les CORS
 header("Content-Type: application/json");
@@ -11,7 +11,6 @@ header("Access-Control-Allow-Headers: Content-Type, Authorization");
 
 // Gérer uniquement la méthode POST
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
-    // Lire les données JSON envoyées
     $data = json_decode(file_get_contents("php://input"), true);
 
     if (!isset($data['email']) || !isset($data['password'])) {
@@ -22,18 +21,15 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         exit();
     }
 
-    $email = $conn->real_escape_string($data['email']);
+    $email = $data['email'];
     $password = $data['password'];
 
-    // Préparer la requête SQL
-    $sql = "SELECT id, username, email, password, photo, role, points FROM users WHERE email = ?";
-    $stmt = $conn->prepare($sql);
-    $stmt->bind_param("s", $email);
-    $stmt->execute();
-    $result = $stmt->get_result();
+    // Requête sécurisée avec PDO
+    $stmt = $pdo->prepare("SELECT id, username, email, password, photo, role, points FROM users WHERE email = ?");
+    $stmt->execute([$email]);
+    $user = $stmt->fetch();
 
-    // Vérifier si l'utilisateur existe
-    if ($user = $result->fetch_assoc()) {
+    if ($user) {
         if (password_verify($password, $user['password'])) {
             // Authentification réussie
             $_SESSION['user_id']   = $user['id'];
@@ -69,6 +65,5 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         ]);
         exit();
     }
-    $conn->close();
 }
 ?>

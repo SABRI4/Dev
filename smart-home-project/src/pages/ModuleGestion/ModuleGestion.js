@@ -179,10 +179,10 @@ function ModuleGestion() {
     };
   
     // Fonction pour ajouter un nouvel appareil
-    // ****** AJOUT D'UN OBJET ******
     const handleAddDevice = async () => {
       const saved = await addDevice(newDevice);      // POST
       setConnectedDevices([...connectedDevices, saved]);
+      await fetchDevices(); // Recharge tous les appareils
       setShowAddModal(false);
     };
 
@@ -225,12 +225,32 @@ function ModuleGestion() {
     setShowDeleteConfirmation(true);
   };
   
-  // Fonction pour confirmer la demande de suppression
   const handleConfirmDeletion = async () => {
-    await updateDevice({ suppressionDemandee: 1 }, selectedDevice.id); // Flag de demande
-    setShowDeleteConfirmation(false);
-    setDeletionSuccess(true);
+    try {
+      const response = await fetch("http://localhost:3020/plateforme/smart-home-project/api/request_delete.php", {
+        method: "POST",
+        credentials: "include",
+        body: new URLSearchParams({
+          item_type: selectedDevice.type,
+          item_id: selectedDevice.id
+        })
+      });
+  
+      const data = await response.json();
+  
+      if (data.status === "success") {
+        setShowDeleteConfirmation(false);
+        setDeletionSuccess(true);
+      } else {
+        alert("Erreur : " + data.message);
+      }
+    } catch (error) {
+      console.error("Erreur lors de la requête :", error);
+      alert("Erreur réseau.");
+    }
   };
+  
+  
 
   // Fonction pour générer et télécharger un rapport PDF
   const handleGenerateReport = (device) => {
