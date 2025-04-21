@@ -47,7 +47,9 @@ if (!$request) {
     exit;
 }
 
-if ($request['item_type'] === 'device') {
+$knownTypes = ['thermostat', 'lumière', 'climatiseur', 'volets', 'sécurité', 'météo'];
+
+if (in_array(strtolower($request['item_type']), $knownTypes)) {
     $stmt = $pdo->prepare("DELETE FROM devices WHERE id = ?");
     $stmt->execute([$request['item_id']]);
 }

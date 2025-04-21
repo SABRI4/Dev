@@ -82,6 +82,7 @@ function AdminDeleteRequests() {
               transition: 'background 0.3s'
             }}
           >
+            ⬅️ Retour à l'accueil
           </button>
         </div>
 
@@ -103,20 +104,20 @@ function AdminDeleteRequests() {
                 <p><strong>🔧 Objet ID:</strong> {req.item_id} <em>({req.item_type})</em></p>
                 <p><strong>👤 Utilisateur ID:</strong> {req.user_id}</p>
                 <button
-                onClick={() => handleValidate(req.id)}
-                style={{
-                  marginTop: '0.5rem',
-                  backgroundColor: '#E74C3C',
-                  color: 'white',
-                  padding: '8px 15px',
-                  border: 'none',
-                  borderRadius: '5px',
-                  cursor: 'pointer',
-                  fontWeight: 'bold'
-                }}
-              >
-              </button>
-
+                  onClick={() => handleValidate(req.id)}
+                  style={{
+                    marginTop: '0.5rem',
+                    backgroundColor: '#E74C3C',
+                    color: 'white',
+                    padding: '8px 15px',
+                    border: 'none',
+                    borderRadius: '5px',
+                    cursor: 'pointer',
+                    fontWeight: 'bold'
+                  }}
+                >
+                  🗑️ Valider la suppression
+                </button>
               </li>
             ))}
           </ul>

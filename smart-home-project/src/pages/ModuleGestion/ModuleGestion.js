@@ -64,6 +64,13 @@ function ModuleGestion() {
 
     const API_BASE = 'http://localhost:3020/plateforme/smart-home-project/api/device.php';
 
+    useEffect(() => {
+      const storedUser = localStorage.getItem("user");
+      if (storedUser) {
+        setUser(JSON.parse(storedUser));
+      }
+    }, []);
+    
     const [connectedDevices, setConnectedDevices] = useState([]);
     const [loading, setLoading]   = useState(true);
     const [error,   setError]     = useState(null);
