@@ -91,7 +91,7 @@ INSERT INTO `users`
   (`username`, `password`,          `email`,            `photo`,          `role`, `points`)
 VALUES
   ('admin',   '$2y$10$ixxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', -- hash bcrypt: "admin123"
-   'admin@cyhome.local', '/uploads/default-avatar.png', 'admin', 0);
+   'comptedepense205@gmail.com', '/uploads/default-avatar.png', 'admin', 0);
 
 SET foreign_key_checks = 1;
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
