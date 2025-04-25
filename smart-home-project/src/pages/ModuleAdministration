@@ -1,0 +1,1355 @@
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import logoImage from '../../Pictures/cyhome-logo.png';
+import cytechLogo from '../../Pictures/cytech-logo.png';
+import backgroundImage from '../../Pictures/kitchen-background.jpg';
+// Importation pour la génération de PDF
+import { jsPDF } from 'jspdf';
+import 'jspdf-autotable';
+
+const ModuleAdministration = () => {
+  const navigate = useNavigate();
+  const [user, setUser] = useState(null);
+  const [activeUser, setActiveUser] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [activeModal, setActiveModal] = useState(null);
+  const [isNavigating, setIsNavigating] = useState(false); // Nouvel état pour la navigation
+  const [showAddDeviceForm, setShowAddDeviceForm] = useState(false);
+  const [showCategoryModal, setShowCategoryModal] = useState(false);
+  const [globalRules, setGlobalRules] = useState({
+    energyPriority: 'équilibré',
+    autoShutdownInactive: true,
+    alertSensitivity: 'moyenne'
+  });
+  const [showGlobalRulesModal, setShowGlobalRulesModal] = useState(false);
+
+  // Fonction de navigation avec transition
+    const handleNavigateHome = (e) => {
+      e.preventDefault();
+      setIsNavigating(true);
+
+      setTimeout(() => {
+        navigate('/');
+      }, 500);
+    };
+
+  const [users, setUsers] = useState([
+  {
+        name: 'Alice Dupont',
+        id: 1,
+        email: 'alice@example.com',
+        age: 29,
+        gender: 'Femme',
+        role: 'Administrateur',
+        memberType: 'Résident',
+        points: 150,
+        photo: 'https://randomuser.me/api/portraits/women/44.jpg',
+      },
+      {
+        name: 'Jean Martin',
+        id: 2,
+        email: 'jean@example.com',
+        age: 34,
+        gender: 'Homme',
+        role: 'Simple',
+        memberType: 'Invité',
+        points: 85,
+        photo: 'https://randomuser.me/api/portraits/men/36.jpg',
+      },
+      {
+        name: 'Claire Durand',
+        id: 3,
+        email: 'claire@example.com',
+        age: 42,
+        gender: 'Femme',
+        role: 'Complexe',
+        memberType: 'Résident',
+        points: 210,
+        photo: 'https://randomuser.me/api/portraits/women/65.jpg',
+      }
+    ]);
+  const [theme, setTheme] = useState('Clair');
+
+  useEffect(() => {
+    document.body.className = theme === 'Clair' ? 'light-theme' : 'dark-theme';
+  }, [theme]);
+  const [newDevice, setNewDevice] = useState({ name: '', type: '', status: '', room: '', energyConsumption: 0, lastMaintenance: '', batteryLevel: 100 });
+  const [editDevice,setEditDevice] = useState(null);
+  const [deviceTypeOptions, setDeviceTypeOptions] = useState(['thermostat', 'climatiseur', 'volets', 'lumière', 'sécurité', 'météo']);
+  const [newCategory, setNewCategory] = useState('');
+  const [history, setHistory] = useState([]);
+  const [validationRule, setValidationRule] = useState('Automatique');
+  const [showAddUserForm, setShowAddUserForm] = useState(false);
+  const [editUser, setEditUser] = useState(null);
+  const [showHistoryModal, setShowHistoryModal] = useState(false);
+  const DeviceIcons = {
+    thermostat: (
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="40" height="40" fill="#FFFFFF">
+        <path d="M12,22c-4.418,0-8-3.582-8-8c0-3.584,2.385-6.615,5.649-7.605C9.879,6.266,10,6.133,10,6V3c0-0.552,0.448-1,1-1h2 c0.552,0,1,0.448,1,1v3c0,0.133,0.121,0.266,0.351,0.395C17.615,7.385,20,10.416,20,14C20,18.418,16.418,22,12,22z M13,4h-2v2h2V4z M12,20c3.314,0,6-2.686,6-6c0-3.314-2.686-6-6-6s-6,2.686-6,6C6,17.314,8.686,20,12,20z M11,14.732V10c0-0.552,0.448-1,1-1 s1,0.448,1,1v4.732c0.616,0.357,1,1.025,1,1.768c0,1.105-0.895,2-2,2s-2-0.895-2-2C10,15.757,10.384,15.089,11,14.732z"/>
+      </svg>
+    ),
+    climatiseur: (
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="40" height="40" fill="#FFFFFF">
+        <path d="M21,9h-7V7c0-0.55-0.45-1-1-1h-2c-0.55,0-1,0.45-1,1v2H3C2.45,9,2,9.45,2,10v4c0,0.55,0.45,1,1,1h7v2c0,0.55,0.45,1,1,1h2 c0.55,0,1-0.45,1-1v-2h7c0.55,0,1-0.45,1-1v-4C22,9.45,21.55,9,21,9z M20,13h-7c-0.55,0-1,0.45-1,1v2h-2v-2c0-0.55-0.45-1-1-1H4 v-2h7c0.55,0,1-0.45,1-1V8h2v2c0,0.55,0.45,1,1,1h5V13z"/>
+        <path d="M9,16h1.5v1.5H9V16z"/>
+        <path d="M13.5,16H15v1.5h-1.5V16z"/>
+        <path d="M9,12h1.5v1.5H9V12z"/>
+        <path d="M13.5,12H15v1.5h-1.5V12z"/>
+      </svg>
+    ),
+    volets: (
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="40" height="40" fill="#FFFFFF">
+        <path d="M19,4H5C3.89,4,3,4.9,3,6v12c0,1.1,0.9,2,2,2h14c1.1,0,2-0.9,2-2V6C21,4.9,20.1,4,19,4z M19,18H5V6h14V18z"/>
+        <path d="M7,9h10v2H7V9z"/>
+        <path d="M7,12h10v2H7V12z"/>
+        <path d="M7,15h10v2H7V15z"/>
+      </svg>
+    ),
+    lumière: (
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="40" height="40" fill="#FFFFFF">
+        <path d="M12,2C8.13,2,5,5.13,5,9c0,2.38,1.19,4.47,3,5.74V17c0,0.55,0.45,1,1,1h1v2c0,0.55,0.45,1,1,1h2c0.55,0,1-0.45,1-1v-2h1 c0.55,0,1-0.45,1-1v-2.26c1.81-1.27,3-3.36,3-5.74C19,5.13,15.87,2,12,2z"/>
+      </svg>
+    ),
+    sécurité: (
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="40" height="40" fill="#FFFFFF">
+        <path d="M12,2L4,5v6.09c0,5.05,3.41,9.76,8,10.91c4.59-1.15,8-5.86,8-10.91V5L12,2z M18,11.09c0,4-2.55,7.7-6,8.83 c-3.45-1.13-6-4.82-6-8.83V6.31l6-2.12l6,2.12V11.09z"/>
+        <path d="M12,7c-2.76,0-5,2.24-5,5s2.24,5,5,5s5-2.24,5-5S14.76,7,12,7z M12,15c-1.66,0-3-1.34-3-3s1.34-3,3-3s3,1.34,3,3 S13.66,15,12,15z"/>
+      </svg>
+    ),
+    météo: (
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="40" height="40" fill="#FFFFFF">
+        <path d="M19.35,10.04C18.67,6.59,15.64,4,12,4C9.11,4,6.6,5.64,5.35,8.04C2.34,8.36,0,10.91,0,14c0,3.31,2.69,6,6,6h13 c2.76,0,5-2.24,5-5C24,12.36,21.95,10.22,19.35,10.04z"/>
+      </svg>
+    )
+  };
+  const [selectedDevice, setSelectedDevice] = useState(null);
+  const [connectedDevices, setConnectedDevices] = useState([
+      {
+        id: 1,
+        name: 'Thermostat Salon',
+        type: 'thermostat',
+        status: 'actif',
+        room: 'Salon',
+        temperature: 22,
+        targetTemperature: 23,
+        energyConsumption: 45,
+        lastMaintenance: '2024-03-15',
+        batteryLevel: 85
+      },
+      {
+        id: 2,
+        name: 'Climatiseur Chambre',
+        type: 'climatiseur',
+        status: 'inactif',
+        room: 'Chambre Principale',
+        currentMode: 'Veille',
+        temperature: 18,
+        energyConsumption: 0,
+        lastMaintenance: '2024-02-20',
+        batteryLevel: 100
+      },
+      {
+        id: 3,
+        name: 'Volets Automatiques Salon',
+        type: 'volets',
+        status: 'actif',
+        room: 'Salon',
+        openPercentage: 50,
+        currentPosition: 'Mi-ouverts',
+        energyConsumption: 15,
+        lastMaintenance: '2024-04-01',
+        batteryLevel: 75
+      },
+      {
+        id: 4,
+        name: 'Capteur de Présence Entrée',
+        type: 'sécurité',
+        status: 'actif',
+        room: 'Entrée',
+        movementDetected: false,
+        lastMovement: '2024-04-05 10:35:22',
+        energyConsumption: 5,
+        lastMaintenance: '2024-03-25',
+        batteryLevel: 90
+      },
+      {
+        id: 5,
+        name: 'Station Météo Extérieure',
+        type: 'météo',
+        status: 'actif',
+        room: 'Extérieur',
+        temperature: 15,
+        humidity: 65,
+        windSpeed: 12,
+        precipitation: 0,
+        energyConsumption: 10,
+        lastMaintenance: '2024-03-10',
+        batteryLevel: 95
+      },
+      {
+        id: 6,
+        name: 'Caméra de Sécurité Jardin',
+        type: 'sécurité',
+        status: 'inactif',
+        room: 'Jardin',
+        recordingStatus: 'Arrêté',
+        motionSensitivity: 'Moyen',
+        energyConsumption: 0,
+        lastMaintenance: '2024-02-15',
+        batteryLevel: 60
+      },
+      {
+        id: 7,
+        name: 'Éclairage Salon Intelligent',
+        type: 'lumière',
+        status: 'actif',
+        room: 'Salon',
+        brightness: 70,
+        colorTemperature: 3000,
+        energyConsumption: 25,
+        lastMaintenance: '2024-03-30',
+        batteryLevel: 100
+      },
+      {
+        id: 8,
+        name: 'Détecteur de Fumée Cuisine',
+        type: 'sécurité',
+        status: 'actif',
+        room: 'Cuisine',
+        smokeDetected: false,
+        carbonMonoxideLevel: 0,
+        energyConsumption: 3,
+        lastMaintenance: '2024-03-20',
+        batteryLevel: 88
+      }
+  ]);
+
+  // Fonction pour ouvrir les détails d'un appareil
+    const handleDeviceDetails = (device) => {
+      setSelectedDevice(device);
+    };
+    const handleDeleteDevice = (deviceId) => {
+        setConnectedDevices(prev => prev.filter(device => device.id !== deviceId));
+        setSelectedDevice(null);
+    };
+    const handleSaveDeviceEdit = () => {
+        setConnectedDevices(prev => prev.map(dev => dev.id === editDevice.id ? editDevice : dev));
+        setEditDevice(null);
+        setSelectedDevice(editDevice);
+      };
+
+  useEffect(() => {
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      setUser(JSON.parse(storedUser));
+    }
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem('user');
+    navigate('/auth');
+  };
+
+  const handleUserClick = (user) => {
+      setActiveUser(user);
+    };
+
+  const handleDeleteUser = () => {
+    if (activeUser) {
+      setUsers(users.filter(u => u.email !== activeUser.email));
+      setActiveUser(null);
+    }
+  };
+
+  const filteredUsers = users.filter(user =>
+      user.name.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+  const handleSaveEdit = (updatedUser) => {
+    setUsers((prevUsers) =>
+      prevUsers.map((user) =>
+        user.id === updatedUser.id ? { ...updatedUser } : user
+      )
+    );
+    setActiveUser(updatedUser);
+    setEditUser(null);
+  };
+
+  const statusOptions = ['actif', 'inactif'];
+    const handleAddDevice = () => {
+        if (!newDevice.name || !newDevice.type || !newDevice.status || !newDevice.room) return;
+        setConnectedDevices(prev => [...prev, { ...newDevice, id: Date.now() }]);
+        setShowAddDeviceForm(false);
+        setNewDevice({ name: '', type: '', status: '', room: '', energyConsumption: 0, lastMaintenance: '', batteryLevel: 100 });
+      };
+
+  const handleAddCategory = () => {
+      if (newCategory && !deviceTypeOptions.includes(newCategory)) {
+        setDeviceTypeOptions(prev => [...prev, newCategory]);
+        setNewDevice(prev => ({ ...prev, type: newCategory }));
+        setNewCategory('');
+      }
+    };
+
+  const handleDeleteCategory = (categoryToDelete) => {
+      setDeviceTypeOptions(prev => prev.filter(type => type !== categoryToDelete));
+    };
+
+  const closeModal = () => setActiveModal(null);
+
+  const styles = {
+      modal: {
+          position: 'fixed',
+          top: 100,
+          left: 100,
+          width: '75vw',
+          height: '65vh',
+          backgroundColor: 'transparent',
+          borderRadius: '10px',
+          zIndex: 1001,
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'stretch',
+          padding: '1rem',
+          gap: '2.5rem'
+        },
+        modalLeft: {
+          backgroundColor: 'rgba(255,255,255,0.95)',
+          flex: '6',
+          padding: '2rem',
+          color: '#333',
+          overflowY: 'auto',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'flex-start',
+          gap: '1rem',
+          borderRadius: '10px',
+          height: '100%'
+        },
+        modalRight: {
+          backgroundColor: 'rgba(211, 84, 0, 0.9)',
+          flex: '4',
+          padding: '2rem',
+          color: 'white',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          alignItems: 'center',
+          gap: '0.5rem',
+          borderRadius: '10px',
+          height: '100%'
+        },
+        button: {
+          backgroundColor: '#D35400',
+          color: 'white',
+          border: 'none',
+          padding: '0.75rem 1.5rem',
+          borderRadius: '5px',
+          fontWeight: 'bold',
+          cursor: 'pointer',
+          marginBottom: '1rem',
+          width: '100%'
+        },
+        cancelButton: {
+          backgroundColor: '#999',
+          color: 'white',
+          border: 'none',
+          padding: '0.75rem 1.5rem',
+          borderRadius: '5px',
+          fontWeight: 'bold',
+          cursor: 'pointer',
+          width: '100%'
+        },
+        userCard: {
+          display: 'inline-block',
+          width: '150px',
+          textAlign: 'center',
+          cursor: 'pointer',
+          backgroundColor: 'rgba(211, 84, 0, 0.2)',
+          padding: '1rem',
+          borderRadius: '10px'
+        },
+        profileImage: {
+          width: '80px',
+          height: '80px',
+          borderRadius: '50%',
+          objectFit: 'cover',
+          marginBottom: '0.5rem'
+        },
+        backdrop: {
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100vw',
+          height: '100vh',
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          zIndex: 1000
+        },
+        searchInput: {
+          width: '60%',
+          padding: '0.5rem',
+          border: '1px solid #ccc',
+          borderRadius: '5px',
+          backgroundColor: 'rgba(255,255,255,0.9)'
+        },
+        addUserButton: {
+          width: '100%',
+          padding: '12px',
+          background: 'transparent',
+          color: '#D35400',
+          border: '2px solid #D35400',
+          borderRadius: '5px',
+          cursor: 'pointer',
+          fontSize: '16px',
+          fontWeight: 'bold',
+          marginBottom: '20px',
+          transition: 'all 0.3s ease'
+        },
+        searchBarContainer: {
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          width: '100%',
+          marginBottom: '1.5rem',
+          gap: '1rem'
+        },
+        sectionTitle: {
+          fontSize: '3.2rem',
+          fontWeight: 'bold',
+          marginBottom: '0.5rem',
+          marginTop: '-1.5rem'
+        },
+        modalOverlay: {
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100vw',
+          height: '100vh',
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 2000
+        },
+        addUserModal: {
+          backgroundColor: '#fff',
+          borderRadius: '10px',
+          padding: '2rem',
+          width: '380px',
+          maxHeight: '90vh',
+          overflowY: 'auto',
+          boxShadow: '0px 0px 15px rgba(0,0,0,0.3)',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 2100
+        },
+        addPhotoButton: {
+          marginBottom: '1rem',
+          backgroundColor: 'transparent',
+          border: '2px solid #D35400',
+          padding: '0.6rem 1rem',
+          color: '#D35400',
+          borderRadius: '6px',
+          fontWeight: 'bold',
+          cursor: 'pointer',
+          alignSelf: 'center'
+        },
+        formInput: {
+          marginBottom: '0.8rem',
+          width: '90%',
+          padding: '0.5rem',
+          borderRadius: '5px',
+          border: '1px solid #ccc',
+          fontSize: '1rem'
+        },
+        signupButton: {
+          backgroundColor: '#D35400',
+          color: 'white',
+          padding: '0.7rem',
+          width: '150px',
+          border: 'none',
+          borderRadius: '5px',
+          fontWeight: 'bold',
+          cursor: 'pointer',
+          marginTop: '1rem',
+          transition: 'all 0.3s ease-in-out'
+        },
+        signupButtonHover: {
+          backgroundColor: 'white',
+          color: '#D35400',
+          border: '2px solid #D35400'
+        },
+        rightPanelContent: {
+          backgroundColor: 'rgba(211, 84, 0, 0.85)',
+          color: 'white',
+          borderRadius: '12px',
+          padding: '2rem',
+          width: '100%',
+          boxShadow: '0px 0px 10px rgba(0,0,0,0.2)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '0.6rem',
+          fontSize: '1.05rem'
+        },
+        rightPanelTitle: {
+          fontSize: '1.6rem',
+          fontWeight: 'bold',
+          marginBottom: '0.5rem',
+          borderBottom: '2px solid white',
+          paddingBottom: '0.3rem'
+        },
+        rightPanelButton: {
+          backgroundColor: 'transparent',
+          color: 'white',
+          border: '2px solid white',
+          borderRadius: '6px',
+          padding: '0.5rem',
+          fontWeight: 'bold',
+          cursor: 'pointer',
+          marginTop: '0.5rem',
+          transition: 'all 0.3s ease-in-out'
+        },
+        rightPanelButtonHover: {
+          backgroundColor: 'white',
+          color: '#D35400'
+        },
+      historyModal: {
+          position: 'fixed',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          backgroundColor: 'rgba(255,255,255,0.95)',
+          padding: '2rem',
+          borderRadius: '12px',
+          boxShadow: '0px 0px 10px rgba(0,0,0,0.3)',
+          width: '500px',
+          zIndex: 3000,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '1rem',
+          maxHeight: '80vh',
+          overflowY: 'auto'
+        },
+        historyItem: {
+          borderBottom: '1px solid #ddd',
+          paddingBottom: '0.5rem'
+        },
+        historyTitle: {
+          fontSize: '1.5rem',
+          fontWeight: 'bold',
+          marginBottom: '0.5rem'
+        },
+        historyBackButton: {
+          alignSelf: 'center',
+          padding: '0.5rem 1rem',
+          backgroundColor: '#D35400',
+          color: 'white',
+          border: 'none',
+          borderRadius: '5px',
+          fontWeight: 'bold',
+          cursor: 'pointer',
+          transition: 'all 0.3s ease'
+        },
+        dashboardReturnButton: {
+          position: 'absolute',
+          top: 730,
+          right: 550,
+          padding: '1rem 1rem',
+          backgroundColor: 'white',
+          color: '#D35400',
+          border: '2px solid #D35400',
+          borderRadius: '6px',
+          fontWeight: 'bold',
+          cursor: 'pointer',
+          zIndex: 2001,
+          transition: 'all 0.3s ease'
+        },
+        deviceCardContainer: {
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: '1rem',
+          justifyContent: 'flex-start',
+          width: '100%'
+        },
+        buttonRow: {
+          display: 'flex',
+          justifyContent: 'space-between',
+          width: '100%',
+          gap: '0.5rem'
+        },
+        modalFooter: {
+          display: 'flex',
+          justifyContent: 'space-between',
+          marginTop: '5rem',
+          gap: '1rem'
+        },
+        categoryList: {
+          listStyle: 'none',
+          padding: 0,
+          marginTop: '1rem',
+          width: '100%',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '0.5rem'
+        },
+        categoryItem: {
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          backgroundColor: 'rgba(211, 84, 0, 0.15)',
+          padding: '0.5rem 1rem',
+          borderRadius: '5px'
+        },
+        deviceCard: {
+          backgroundColor: 'rgba(211, 84, 0, 0.2)',
+          padding: '1rem',
+          borderRadius: '10px',
+          width: '30%',
+          minWidth: '220px',
+          boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
+          boxSizing: 'border-box'
+        },
+        modal1: {
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100vw',
+          height: '100vh',
+          backgroundColor: 'rgba(0, 0, 0, 0.4)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        },
+        modal2: {
+          backgroundColor: 'rgba(255,255,255,0.95)',
+          padding: '150px',
+          borderRadius: '12px',
+          boxShadow: '0 4px 20px rgba(0,0,0,0.2)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '15px',
+          minWidth: '300px',
+          maxWidth: '400px',
+          textAlign: 'center',
+          zIndex: 1000
+        }
+
+
+    };
+  const panels = [
+    { key: 'users', title: 'Utilisateurs', features: [
+      'Gestion des utilisateurs'
+    ]},
+    { key: 'devices', title: 'Objets Connectés', features: [
+      'Gestion des objets connectés'
+    ]},
+    { key: 'maintenance', title: 'Maintenance', features: [
+      'Gestion de la bdd/maj mdp'
+    ]},
+    { key: 'customization', title: 'Personnalisation', features: [
+      "Modifier l'apparence du site"
+    ]},
+    { key: 'reports', title: 'Rapports', features: [
+      'Gestion des données/stats'
+    ]},
+    { key: 'request', title: 'Requête', features: [
+          'Gestion des demandes de suppression'
+        ]}
+  ];
+    {showHistoryModal && (
+      <div style={styles.modalOverlay}>
+        <div style={styles.historyModal}>
+          <h3 style={styles.historyTitle}>Historique de {activeUser?.name}</h3>
+          {history
+            .filter(h => h.includes(activeUser?.name))
+            .map((h, i) => (
+              <div key={i} style={styles.historyItem}>{h}</div>
+            ))}
+          <button style={styles.historyBackButton} onClick={() => setShowHistoryModal(false)}>Retour</button>
+        </div>
+      </div>
+    )}
+  const addHistory = (entry) => setHistory([...history, `${new Date().toLocaleString()} - ${entry}`]);
+
+  const renderModalContent = (key) => {
+    switch (key) {
+      case 'users':
+        return (
+        <div>
+            <button style={styles.dashboardReturnButton} onClick={closeModal}>
+              Retour au dashboard
+            </button>
+
+            {(activeUser || users.length) && <div style={styles.backdrop} onClick={() => setActiveUser(null)} />}
+            <div style={styles.modal}>
+              <div style={styles.modalLeft}>
+                <h2 style={styles.sectionTitle}>Gestion des utilisateurs</h2>
+                <div style={styles.searchBarContainer}>
+                  <input
+                    type="text"
+                    placeholder="Rechercher un utilisateur..."
+                    style={styles.searchInput}
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+                  <button style={styles.addUserButton} onClick={() => setShowAddUserForm(true)}>Ajouter un utilisateur</button>
+                </div>
+
+                {showAddUserForm && (
+                  <div style={styles.modalOverlay} onClick={() => setShowAddUserForm(false)}>
+                    <div style={styles.addUserModal} onClick={(e) => e.stopPropagation()}>
+                      <h2 style={{ fontSize: '2rem', marginBottom: '1rem' }}>Créer un compte</h2>
+                      <button style={styles.addPhotoButton}>Ajouter une photo</button>
+                      <input type="text" placeholder="Nom d'utilisateur" style={styles.formInput} />
+                      <input type="email" placeholder="Email" style={styles.formInput} />
+                      <input type="password" placeholder="Mot de passe" style={styles.formInput} />
+                      <input type="number" placeholder="Âge" style={styles.formInput} />
+                      <select style={styles.formInput}>
+                        <option>Sélectionner le genre</option>
+                        <option>Homme</option>
+                        <option>Femme</option>
+                        <option>Autre</option>
+                      </select>
+                      <input type="date" placeholder="Date de naissance" style={styles.formInput} />
+                      <select style={styles.formInput}>
+                        <option>Type de membre</option>
+                        <option>Administrateur</option>
+                        <option>Utilisateur</option>
+                      </select>
+                      <button
+                        style={styles.signupButton}
+                        onMouseEnter={(e) => Object.assign(e.target.style, styles.signupButtonHover)}
+                        onMouseLeave={(e) => Object.assign(e.target.style, styles.signupButton)}
+                        onClick={() => {
+                          const name = document.querySelector("input[placeholder='Nom d\\'utilisateur']").value;
+                          const email = document.querySelector("input[placeholder='Email']").value;
+                          const age = document.querySelector("input[placeholder='Âge']").value;
+                          const gender = document.querySelector("select").value;
+                          const role = document.querySelectorAll("select")[1].value;
+
+                          if (name && email) {
+                            setUsers(prev => [...prev, {
+                              name,
+                              email,
+                              age,
+                              gender,
+                              role,
+                              memberType: 'Invité',
+                              photo: '',
+                              points: 0
+                            }]);
+                            setShowAddUserForm(false);
+                          }
+                        }}
+                      >
+                        S'INSCRIRE
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem' }}>
+                  {filteredUsers.map((u, index) => (
+                    <div key={index} style={styles.userCard} onClick={() => handleUserClick(u)}>
+                      <img src={u.photo} alt={u.name} style={styles.profileImage} />
+                      <p>{u.name}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div style={styles.modalRight}>
+                {editUser ? (
+                  <div style={styles.rightPanelContent}>
+                    <h2 style={styles.rightPanelTitle}>Éditer l'utilisateur</h2>
+                    <input
+                      style={styles.formInput}
+                      type="text"
+                      value={editUser.name}
+                      onChange={(e) => setEditUser({ ...editUser, name: e.target.value })}
+                      placeholder="Nom"
+                    />
+                    <input
+                      style={styles.formInput}
+                      type="email"
+                      value={editUser.email}
+                      onChange={(e) => setEditUser({ ...editUser, email: e.target.value })}
+                      placeholder="Email"
+                    />
+                    <input
+                      style={styles.formInput}
+                      type="number"
+                      value={editUser.age}
+                      onChange={(e) => setEditUser({ ...editUser, age: e.target.value })}
+                      placeholder="Âge"
+                    />
+                    <select
+                      style={styles.formInput}
+                      value={editUser.gender}
+                      onChange={(e) => setEditUser({ ...editUser, gender: e.target.value })}
+                    >
+                      <option value="">Genre</option>
+                      <option value="Homme">Homme</option>
+                      <option value="Femme">Femme</option>
+                    </select>
+                    <select
+                      style={styles.formInput}
+                      value={editUser.role}
+                      onChange={(e) => setEditUser({ ...editUser, role: e.target.value })}
+                    >
+                      <option value="">Rôle</option>
+                      <option value="Visiteur">Visiteur</option>
+                      <option value="Simple">Simple</option>
+                      <option value="Complexe">Complexe</option>
+                      <option value="Administrateur">Administrateur</option>
+                    </select>
+                    <select
+                      style={styles.formInput}
+                      value={editUser.memberType}
+                      onChange={(e) => setEditUser({ ...editUser, memberType: e.target.value })}
+                    >
+                      <option value="">Type de membre</option>
+                      <option value="Père">Père</option>
+                      <option value="Fils">Fils</option>
+                      <option value="Grand-père">Grand-père</option>
+                      <option value="Invitée">Invitée</option>
+                    </select>
+                    <input
+                      style={styles.formInput}
+                      type="number"
+                      value={editUser.points}
+                      onChange={(e) => setEditUser({ ...editUser, points: e.target.value })}
+                      placeholder="Points"
+                    />
+                    <button
+                      style={styles.rightPanelButton}
+                      onClick={() => handleSaveEdit(editUser)}
+                      onMouseEnter={e => Object.assign(e.target.style, styles.rightPanelButtonHover)}
+                      onMouseLeave={e => Object.assign(e.target.style, styles.rightPanelButton)}
+                    >
+                      Enregistrer
+                    </button>
+                    <button
+                      style={styles.rightPanelButton}
+                      onClick={() => setEditUser(null)}
+                      onMouseEnter={e => Object.assign(e.target.style, styles.rightPanelButtonHover)}
+                      onMouseLeave={e => Object.assign(e.target.style, styles.rightPanelButton)}
+                    >
+                      Retour
+                    </button>
+                  </div>
+                ) : activeUser ? (
+                  <div style={styles.rightPanelContent}>
+                    <h2 style={styles.rightPanelTitle}>{activeUser.name}</h2>
+                    <p><strong>Email :</strong> {activeUser.email}</p>
+                    <p><strong>Âge :</strong> {activeUser.age}</p>
+                    <p><strong>Genre :</strong> {activeUser.gender}</p>
+                    <p><strong>Rôle :</strong> {activeUser.role}</p>
+                    <p><strong>Type :</strong> {activeUser.memberType}</p>
+                    <p><strong>Points :</strong> {activeUser.points}</p>
+                    <button
+                      style={styles.rightPanelButton}
+                      onClick={() => setEditUser(activeUser)}
+                      onMouseEnter={e => Object.assign(e.target.style, styles.rightPanelButtonHover)}
+                      onMouseLeave={e => Object.assign(e.target.style, styles.rightPanelButton)}
+                    >
+                      Modifier
+                    </button>
+                    <button
+                      style={styles.rightPanelButton}
+                      onClick={() => handleDeleteUser(activeUser)}
+                      onMouseEnter={e => Object.assign(e.target.style, styles.rightPanelButtonHover)}
+                      onMouseLeave={e => Object.assign(e.target.style, styles.rightPanelButton)}
+                    >
+                      Supprimer
+                    </button>
+                    <button
+                      style={styles.rightPanelButton}
+                      onClick={() => setActiveUser(null)}
+                      onMouseEnter={e => Object.assign(e.target.style, styles.rightPanelButtonHover)}
+                      onMouseLeave={e => Object.assign(e.target.style, styles.rightPanelButton)}
+                    >
+                      Retour
+                    </button>
+                    <button
+                      style={styles.rightPanelButton}
+                      onClick={() => setShowHistoryModal(true)}
+                      onMouseEnter={e => Object.assign(e.target.style, styles.rightPanelButtonHover)}
+                      onMouseLeave={e => Object.assign(e.target.style, styles.rightPanelButton)}
+                    >
+                      Voir l'historique
+                    </button>
+                  </div>
+                ) : (
+                  <div style={styles.rightPanelContent}>
+                    <h2 style={styles.rightPanelTitle}>Détails de l'utilisateur</h2>
+                    <p>Veuillez sélectionner un utilisateur</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      case 'devices':
+        return (
+                <div>
+                  <button style={styles.dashboardReturnButton} onClick={closeModal}>Retour au dashboard</button>
+                  <div style={styles.backdrop} />
+                  <div style={styles.modal}>
+                    <div style={styles.modalLeft}>
+                      <h2 style={styles.sectionTitle}>Gestion des objets connectés</h2>
+                      <div style={styles.searchBarContainer}>
+                        <input
+                          type="text"
+                          placeholder="Rechercher un appareil..."
+                          style={styles.searchInput}
+                          value={searchTerm}
+                          onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                        <div style={{ display: 'flex', gap: '1rem' }}>
+                                          <button style={styles.addUserButton} onClick={() => setShowAddDeviceForm(true)}>Ajouter un appareil</button>
+                                          <button style={styles.addUserButton} onClick={() => setShowCategoryModal(true)}>Gérer les catégories</button>
+                                          <button
+                                            style={styles.addUserButton}
+                                            onClick={() => setShowGlobalRulesModal(true)}
+                                          >
+                                            Règles globales
+                                          </button>
+                                        </div>
+                      </div>
+                                    {showAddDeviceForm && (
+                                                    <div style={styles.modalOverlay} onClick={() => setShowAddDeviceForm(false)}>
+                                                      <div style={styles.addUserModal} onClick={e => e.stopPropagation()}>
+                                                        <h3>Ajouter un appareil</h3>
+                                                        <input style={styles.searchInput} type="text" placeholder="Nom" value={newDevice.name} onChange={(e) => setNewDevice({ ...newDevice, name: e.target.value })} />
+                                                        <select style={styles.searchInput} value={newDevice.type} onChange={(e) => setNewDevice({ ...newDevice, type: e.target.value })}>
+                                                          <option value="">Type d'appareil</option>
+                                                          {deviceTypeOptions.map((type, idx) => (
+                                                            <option key={idx} value={type}>{type.charAt(0).toUpperCase() + type.slice(1)}</option>
+                                                          ))}
+                                                        </select>
+                                                        <select style={styles.searchInput} value={newDevice.status} onChange={(e) => setNewDevice({ ...newDevice, status: e.target.value })}>
+                                                          <option value="">Statut</option>
+                                                          {statusOptions.map((status, idx) => (
+                                                            <option key={idx} value={status}>{status.charAt(0).toUpperCase() + status.slice(1)}</option>
+                                                          ))}
+                                                        </select>
+                                                        <input style={styles.searchInput} type="text" placeholder="Pièce" value={newDevice.room} onChange={(e) => setNewDevice({ ...newDevice, room: e.target.value })} />
+                                                        <input style={styles.searchInput} type="number" placeholder="Consommation" value={newDevice.energyConsumption} onChange={(e) => setNewDevice({ ...newDevice, energyConsumption: e.target.value })} />
+                                                        <input
+                                                          style={styles.searchInput}
+                                                          type="date"
+                                                          placeholder="Dernière maintenance"
+                                                          value={newDevice.lastMaintenance}
+                                                          onChange={(e) => setNewDevice({ ...newDevice, lastMaintenance: e.target.value })}
+                                                        />
+                                                        <input style={styles.searchInput} type="number" placeholder="Batterie" value={newDevice.batteryLevel} onChange={(e) => setNewDevice({ ...newDevice, batteryLevel: e.target.value })} />
+                                                        <div style={styles.buttonRow}>
+                                                          <button
+                                                            style={styles.rightPanelButton}
+                                                            onClick={handleAddDevice}
+                                                            onMouseEnter={e => Object.assign(e.target.style, styles.rightPanelButtonHover)}
+                                                            onMouseLeave={e => Object.assign(e.target.style, styles.rightPanelButton)}
+                                                          >
+                                                            Ajouter
+                                                          </button>
+                                                          <button
+                                                            style={styles.rightPanelButton}
+                                                            onClick={() => setShowAddDeviceForm(false)}
+                                                            onMouseEnter={e => Object.assign(e.target.style, styles.rightPanelButtonHover)}
+                                                            onMouseLeave={e => Object.assign(e.target.style, styles.rightPanelButton)}
+                                                          >
+                                                            Annuler
+                                                          </button>
+                                                        </div>
+                                                      </div>
+                                                    </div>
+                                                  )}
+
+                      <div style={styles.deviceCardContainer}>
+                        {connectedDevices.filter(device => device.name.toLowerCase().includes(searchTerm.toLowerCase())).map((device, index) => (
+                          <div key={index} style={styles.deviceCard} onClick={() => setSelectedDevice(device)}>
+                            <h3>{device.name}</h3>
+                            <p><strong>Type :</strong> {device.type}</p>
+                            <p><strong>Statut :</strong> {device.status}</p>
+                            <p><strong>Consommation :</strong> {device.energyConsumption} W</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    <div style={styles.modalRight}>
+                      {editDevice ? (
+                        <div style={styles.rightPanelContent}>
+                          <h2 style={styles.rightPanelTitle}>Modifier l'appareil</h2>
+                          <input style={styles.searchInput} type="text" value={editDevice.name} onChange={(e) => setEditDevice({ ...editDevice, name: e.target.value })} placeholder="Nom de l'appareil" />
+                          <select
+                            style={styles.searchInput}
+                            value={editDevice.type}
+                            onChange={(e) => setEditDevice({ ...editDevice, type: e.target.value })}
+                          >
+                            <option value="">Type d'appareil</option>
+                            {deviceTypeOptions.map((type, idx) => (
+                              <option key={idx} value={type}>{type.charAt(0).toUpperCase() + type.slice(1)}</option>
+                            ))}
+                          </select>
+
+                          <select
+                            style={styles.searchInput}
+                            value={editDevice.status}
+                            onChange={(e) => setEditDevice({ ...editDevice, status: e.target.value })}
+                          >
+                            <option value="">Statut</option>
+                            {statusOptions.map((status, idx) => (
+                              <option key={idx} value={status}>{status.charAt(0).toUpperCase() + status.slice(1)}</option>
+                            ))}
+                          </select>
+                          <input style={styles.searchInput} type="text" value={editDevice.room} onChange={(e) => setEditDevice({ ...editDevice, room: e.target.value })} placeholder="Pièce" />
+                          <input style={styles.searchInput} type="number" value={editDevice.energyConsumption} onChange={(e) => setEditDevice({ ...editDevice, energyConsumption: e.target.value })} placeholder="Consommation" />
+                          <input
+                            style={styles.searchInput}
+                            type="date"
+                            value={editDevice.lastMaintenance}
+                            onChange={(e) => setEditDevice({ ...editDevice, lastMaintenance: e.target.value })}
+                          />
+                          <input style={styles.searchInput} type="number" value={editDevice.batteryLevel} onChange={(e) => setEditDevice({ ...editDevice, batteryLevel: e.target.value })} placeholder="Batterie" />
+
+                          {editDevice.type === 'thermostat' && (
+                            <>
+                              <input style={styles.searchInput} type="number" value={editDevice.temperature} onChange={(e) => setEditDevice({ ...editDevice, temperature: e.target.value })} placeholder="Température" />
+                              <input style={styles.searchInput} type="number" value={editDevice.targetTemperature} onChange={(e) => setEditDevice({ ...editDevice, targetTemperature: e.target.value })} placeholder="Température cible" />
+                            </>
+                          )}
+
+                          {editDevice.type === 'climatiseur' && (
+                            <>
+                              <input style={styles.searchInput} type="number" value={editDevice.temperature} onChange={(e) => setEditDevice({ ...editDevice, temperature: e.target.value })} placeholder="Température" />
+                              <input style={styles.searchInput} type="text" value={editDevice.currentMode} onChange={(e) => setEditDevice({ ...editDevice, currentMode: e.target.value })} placeholder="Mode actuel" />
+                            </>
+                          )}
+
+                          {editDevice.type === 'volets' && (
+                            <>
+                              <input style={styles.searchInput} type="number" value={editDevice.openPercentage} onChange={(e) => setEditDevice({ ...editDevice, openPercentage: e.target.value })} placeholder="Ouverture (%)" />
+                              <input style={styles.searchInput} type="text" value={editDevice.currentPosition} onChange={(e) => setEditDevice({ ...editDevice, currentPosition: e.target.value })} placeholder="Position" />
+                            </>
+                          )}
+
+                          <button
+                            style={styles.rightPanelButton}
+                            onClick={handleSaveDeviceEdit}
+                            onMouseEnter={e => Object.assign(e.target.style, styles.rightPanelButtonHover)}
+                            onMouseLeave={e => Object.assign(e.target.style, styles.rightPanelButton)}
+                          >
+                            Enregistrer
+                          </button>
+                          <button
+                            style={styles.rightPanelButton}
+                            onClick={() => setEditDevice(null)}
+                            onMouseEnter={e => Object.assign(e.target.style, styles.rightPanelButtonHover)}
+                            onMouseLeave={e => Object.assign(e.target.style, styles.rightPanelButton)}
+                          >
+                            Retour
+                          </button>
+                        </div>
+                      ) : selectedDevice ? (
+                        <div style={styles.rightPanelContent}>
+                          <h2 style={styles.rightPanelTitle}>{selectedDevice.name}</h2>
+                          <p><strong>Type :</strong> {selectedDevice.type}</p>
+                          <p><strong>Statut :</strong> {selectedDevice.status}</p>
+                          <p><strong>Pièce :</strong> {selectedDevice.room}</p>
+                          <p><strong>Consommation :</strong> {selectedDevice.energyConsumption} W</p>
+                          <p><strong>Dernière maintenance :</strong> {selectedDevice.lastMaintenance}</p>
+                          <p><strong>Batterie :</strong> {selectedDevice.batteryLevel}%</p>
+
+                          {selectedDevice.type === 'thermostat' && (
+                            <>
+                              <p><strong>Température :</strong> {selectedDevice.temperature}°C</p>
+                              <p><strong>Température cible :</strong> {selectedDevice.targetTemperature}°C</p>
+                            </>
+                          )}
+
+                          {selectedDevice.type === 'climatiseur' && (
+                            <>
+                              <p><strong>Température :</strong> {selectedDevice.temperature}°C</p>
+                              <p><strong>Mode actuel :</strong> {selectedDevice.currentMode}</p>
+                            </>
+                          )}
+
+                          {selectedDevice.type === 'volets' && (
+                            <>
+                              <p><strong>Ouverture :</strong> {selectedDevice.openPercentage}%</p>
+                              <p><strong>Position :</strong> {selectedDevice.currentPosition}</p>
+                            </>
+                          )}
+
+                          <button
+                            style={styles.rightPanelButton}
+                            onClick={() => setEditDevice(selectedDevice)}
+                            onMouseEnter={e => Object.assign(e.target.style, styles.rightPanelButtonHover)}
+                            onMouseLeave={e => Object.assign(e.target.style, styles.rightPanelButton)}
+                          >
+                            Modifier
+                          </button>
+                          <button
+                            style={styles.rightPanelButton}
+                            onClick={() => handleDeleteDevice(selectedDevice.id)}
+                            onMouseEnter={e => Object.assign(e.target.style, styles.rightPanelButtonHover)}
+                            onMouseLeave={e => Object.assign(e.target.style, styles.rightPanelButton)}
+                          >
+                            Supprimer
+                          </button>
+                        </div>
+                      ) : (
+                        <div style={styles.rightPanelContent}>
+                          <h2 style={styles.rightPanelTitle}>Détails de l'appareil</h2>
+                          <p>Sélectionnez un appareil pour voir ses détails ici</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                      {showCategoryModal && (
+                                  <div style={styles.modalOverlay} onClick={() => setShowCategoryModal(false)}>
+                                    <div style={styles.addUserModal} onClick={(e) => e.stopPropagation()}>
+                                      <h2>Gérer les catégories</h2>
+                                      <input
+                                        type="text"
+                                        placeholder="Nouvelle catégorie"
+                                        style={styles.searchInput}
+                                        value={newCategory}
+                                        onChange={(e) => setNewCategory(e.target.value)}
+                                      />
+                                      <ul style={styles.categoryList}>
+                                        {deviceTypeOptions.map((type, index) => (
+                                          <li key={index} style={styles.categoryItem}>
+                                            {type}
+                                            <button
+                                              style={{ backgroundColor: '#e74c3c', color: 'white', border: 'none', padding: '0.2rem 0.8rem', borderRadius: '5px', cursor: 'pointer' }}
+                                              onClick={() => handleDeleteCategory(type)}
+                                            >
+                                              Supprimer
+                                            </button>
+                                          </li>
+                                        ))}
+                                      </ul>
+                                      <div style={styles.modalFooter}>
+                                        <button style={styles.addUserButton} onClick={handleAddCategory}>Ajouter</button>
+                                        <button style={styles.addUserButton} onClick={() => setShowCategoryModal(false)}>Fermer</button>
+                                      </div>
+                                    </div>
+                                  </div>
+                                )}
+                                {showGlobalRulesModal && (
+                                  <div style={styles.modalOverlay} onClick={() => setShowGlobalRulesModal(false)}>
+                                    <div style={styles.addUserModal} onClick={(e) => e.stopPropagation()}>
+                                      <h2>Règles de fonctionnement globales</h2>
+
+                                      <label>Priorité énergétique</label>
+                                      <select
+                                        style={styles.searchInput}
+                                        value={globalRules.energyPriority}
+                                        onChange={(e) => setGlobalRules(prev => ({ ...prev, energyPriority: e.target.value }))}
+                                      >
+                                        <option value="élevée">Haute performance</option>
+                                        <option value="équilibré">Équilibré</option>
+                                        <option value="économie">Économie d'énergie</option>
+                                      </select>
+
+                                      <label>Sensibilité aux alertes</label>
+                                      <select
+                                        style={styles.searchInput}
+                                        value={globalRules.alertSensitivity}
+                                        onChange={(e) => setGlobalRules(prev => ({ ...prev, alertSensitivity: e.target.value }))}
+                                      >
+                                        <option value="faible">Faible</option>
+                                        <option value="moyenne">Moyenne</option>
+                                        <option value="élevée">Élevée</option>
+                                      </select>
+
+                                      <label style={{ marginTop: '1rem' }}>
+                                        <input
+                                          type="checkbox"
+                                          checked={globalRules.autoShutdownInactive}
+                                          onChange={() => setGlobalRules(prev => ({ ...prev, autoShutdownInactive: !prev.autoShutdownInactive }))}
+                                          style={{ marginRight: '0.5rem' }}
+                                        />
+                                        Éteindre automatiquement les appareils inactifs
+                                      </label>
+
+                                      <div style={styles.modalFooter}>
+                                        <button style={styles.addUserButton} onClick={() => setShowGlobalRulesModal(false)}>Enregistrer</button>
+                                        <button style={styles.addUserButton} onClick={() => setShowGlobalRulesModal(false)}>Fermer</button>
+                                      </div>
+                                    </div>
+                                  </div>
+                                )}
+                </div>
+              );
+
+      case 'maintenance':
+        return (
+            <div style={styles.modal1}>
+              <div style={styles.modal2}>
+                <h3>Sécurité & Maintenance</h3>
+                <button style={styles.button} onClick={() => alert('Mot de passe administrateur mis à jour !')}>
+                  Mettre à jour mot de passe
+                </button>
+                <button style={styles.button} onClick={() => alert('Sauvegarde effectuée !')}>
+                  Sauvegarde
+                </button>
+                <button style={styles.button} onClick={() => alert('Intégrité vérifiée : OK')}>
+                  Vérification intégrité
+                </button>
+                <button style={styles.dashboardReturnButton} onClick={closeModal}>
+                  Retour au dashboard
+                </button>
+              </div>
+            </div>
+          );
+      case 'customization':
+        return (
+            <div style={styles.modal1}>
+              <div style={styles.modal2}>
+                <h3>Personnalisation</h3>
+                <p>Thème actuel : {theme}</p>
+                <button style={styles.button} onClick={() => setTheme(theme === 'Clair' ? 'Sombre' : 'Clair')}>
+                  Changer Thème
+                </button>
+                <p>Validation : {validationRule}</p>
+                <button style={styles.button} onClick={() => setValidationRule(validationRule === 'Automatique' ? 'Manuelle' : 'Automatique')}>
+                  Changer Validation
+                </button>
+                <button style={styles.dashboardReturnButton} onClick={closeModal}>
+                  Retour au dashboard
+                </button>
+              </div>
+            </div>
+          );
+      case 'reports':
+        return (
+            <div style={styles.modal1}>
+              <div style={styles.modal2}>
+                <h3>Rapports</h3>
+                <button style={styles.button} onClick={() => alert('CSV généré !')}>
+                  Exporter CSV
+                </button>
+                <button style={styles.button} onClick={() => alert('PDF généré !')}>
+                  Exporter PDF
+                </button>
+                <button style={styles.button} onClick={() => alert('Statistiques affichées !')}>
+                  Voir Statistiques
+                </button>
+                <button style={styles.dashboardReturnButton} onClick={closeModal}>
+                  Retour au dashboard
+                </button>
+              </div>
+            </div>
+          );
+      case 'request':
+        return(
+                    <div style={styles.modal1}>
+                      <div style={styles.modal2}>
+                        <h3>Rapports</h3>
+                        <button style={styles.button} onClick={() => alert('CSV généré !')}>
+                          Exporter CSV
+                        </button>
+                        <button style={styles.button} onClick={() => alert('PDF généré !')}>
+                          Exporter PDF
+                        </button>
+                        <button style={styles.button} onClick={() => alert('Statistiques affichées !')}>
+                          Voir Statistiques
+                        </button>
+                        <button style={styles.dashboardReturnButton} onClick={closeModal}>
+                          Retour au dashboard
+                        </button>
+                      </div>
+                    </div>
+
+        );
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <div style={{ margin: 0, padding: 0, width: '100%', minHeight: '100vh', position: 'relative', overflow: 'hidden' }}>
+      <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', backgroundImage: `url(${backgroundImage})`, backgroundSize: 'cover', backgroundPosition: 'center', zIndex: -1 }} />
+      <header style={{ position: 'fixed', top: 0, left: 0, right: 0, backgroundColor: 'rgba(245,245,245,0.85)', borderBottom: '3px solid #D35400', padding: '1rem 2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 10 }}>
+        <img src={logoImage} alt="CYHOME Logo" style={{ height: '50px' }} />
+        <h1 style={{ margin: 0, fontSize: '1.5rem', color: '#D35400' }}>Module Administration</h1>
+        {user && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+            <span style={{ color: '#D35400', fontWeight: 'bold' }}>{user.username} ({user.role}) - {user.points} pts</span>
+            <button onClick={handleLogout} style={{ ...styles.button, backgroundColor: 'transparent', color: '#D35400', border: '2px solid #D35400' }}>Se déconnecter</button>
+          </div>
+        )}
+      </header>
+      <main style={{ maxWidth: '1200px', margin: '150px auto 100px', backgroundColor: 'rgba(0,0,0,0.6)', padding: '2rem', borderRadius: '10px', color: 'white' }}>
+        <h2 style={{ fontSize: '2.5rem', marginBottom: '2rem' }}>Panneau de Contrôle Administratif</h2>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '2rem' }}>
+          {panels.map(panel => (
+            <div key={panel.key} style={{ backgroundColor: '#D35400', borderRadius: '10px', padding: '1.5rem', textAlign: 'center' }}>
+              <h3>{panel.title}</h3>
+              <ul style={styles.list}>{panel.features.map((f, i) => <li key={i}>{f}</li>)}</ul>
+              <button style={{ ...styles.button, backgroundColor: 'white', color: '#D35400' }} onClick={() => setActiveModal(panel.key)}>Gérer</button>
+            </div>
+          ))}
+        </div>
+        <Link
+            to="/"
+            onClick={handleNavigateHome} // Modification du onClick
+            style={{
+              position: 'absolute',
+              top: '80px',
+              left: '20px',
+              zIndex: 3,
+              textDecoration: 'none',
+              color: 'white',
+              display: 'flex',
+              alignItems: 'center',
+              fontFamily: 'Arial, sans-serif',
+              transition: 'all 0.3s ease',
+              cursor: 'pointer'
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.color = '#D35400'}
+            onMouseLeave={(e) => e.currentTarget.style.color = 'white'}
+          >
+            <span style={{
+              marginRight: '5px',
+              fontSize: '20px'
+            }}>&#8592;</span>
+            <span>Retour à l'accueil</span>
+          </Link>
+      </main>
+      {showHistoryModal && (
+        <div style={styles.modalOverlay}>
+          <div style={styles.historyModal}>
+            <h3 style={styles.historyTitle}>Historique de {activeUser?.name}</h3>
+            {history
+              .filter(h => h.includes(activeUser?.name))
+              .map((h, i) => (
+                <div key={i} style={styles.historyItem}>{h}</div>
+              ))}
+            <button style={styles.historyBackButton} onClick={() => setShowHistoryModal(false)}>Retour</button>
+          </div>
+        </div>
+      )}
+      {panels.map(panel => (
+        activeModal === panel.key && (
+          <div key={panel.key} style={styles.modal}>
+            <div style={styles.modalContent}>
+
+              {renderModalContent(panel.key)}
+
+
+            </div>
+          </div>
+        )
+      ))}
+    </div>
+  );
+};
+
+export default ModuleAdministration;
