@@ -37,19 +37,30 @@ function ModuleInformation() {
 
   const [user, setUser] = useState(null);
 
+  const [newNewsText, setNewNewsText] = useState('');
+  const [newNewsType, setNewNewsType] = useState('');
+  const [typeFilter, setTypeFilter] = useState('all');
+  const [searchText, setSearchText] = useState('');
+
+
   const handleAddNews = () => {
-    if (newNewsText.trim() === '') return;
+    if (newNewsText.trim() === '' || newNewsType.trim() === '') return;
   
     const newEntry = {
       date: new Date().toLocaleDateString('fr-FR'),
-      text: newNewsText.trim()
+      dateRaw: new Date().toISOString(), 
+      text: newNewsText.trim(),
+      type: newNewsType.trim()
     };
+    
     
     const updatedNews = [newEntry, ...news];
     setNews(updatedNews);
     localStorage.setItem('news', JSON.stringify(updatedNews));
     setNewNewsText('');
+    setNewNewsType('');
   };
+  
   
   const fetchDevices = async () => {
     try {
@@ -86,10 +97,7 @@ function ModuleInformation() {
   const [showFooter, setShowFooter] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
 
-  // Ajouter ces états en haut du composant, après les autres useState
-  const [searchText, setSearchText] = useState('');
   const [dateFilter, setDateFilter] = useState('all');
-  const [typeFilter, setTypeFilter] = useState('all');
 
   // État des objets connectés avec leurs icônes SVG intégrées
   const [connectedDevices, setConnectedDevices] = useState([]);
@@ -98,9 +106,7 @@ function ModuleInformation() {
     const savedNews = localStorage.getItem('news');
     return savedNews ? JSON.parse(savedNews) : [];
   });
-  const [newNewsText, setNewNewsText] = useState('');
   
-
   // Gérer le défilement pour montrer/cacher le header et footer
   useEffect(() => {
     const handleScroll = () => {
@@ -362,7 +368,7 @@ function ModuleInformation() {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: '1.5rem' }}>
               {uniqueDevicesByType.map(device => (
                 <div
-                  key={device.id}
+                  key={device.type}
                   style={{
                     backgroundColor: 'rgba(211, 84, 0, 0.2)',
                     padding: '1.5rem 1rem',
@@ -444,6 +450,25 @@ function ModuleInformation() {
             marginBottom: '0.5rem',
           }}
         />
+        <select
+          value={newNewsType}
+          onChange={(e) => setNewNewsType(e.target.value)}
+          style={{
+            width: '100%',
+            padding: '0.5rem',
+            marginBottom: '0.5rem',
+            borderRadius: '5px',
+            border: 'none',
+            backgroundColor: 'rgba(255, 255, 255, 0.9)'
+          }}
+        >
+          <option value="">Choisir le type</option>
+          <option value="maintenance">🛠️ Maintenance</option>
+          <option value="update">🔄 Mise à jour</option>
+          <option value="alert">⚠️ Alerte</option>
+          <option value="info">ℹ️ Information</option>
+        </select>
+
         <button
           onClick={handleAddNews}
           style={{
@@ -477,56 +502,119 @@ function ModuleInformation() {
         }}
       />
       
-      <div style={{ display: 'flex', gap: '1rem' }}>
-        <select
-          value={dateFilter}
-          onChange={(e) => setDateFilter(e.target.value)}
-          style={{
-            padding: '0.3rem',
-            borderRadius: '5px',
-            border: 'none',
-            backgroundColor: 'rgba(255, 255, 255, 0.9)',
-            flex: 1,
-          }}
-        >
-          <option value="all">Toutes les dates</option>
-          <option value="today">Aujourd'hui</option>
-          <option value="week">Cette semaine</option>
-          <option value="month">Ce mois</option>
-        </select>
+      <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem' }}>
+      {/* Champ pour filtrer par date */}
+      <select
+        value={dateFilter}
+        onChange={(e) => setDateFilter(e.target.value)}
+        style={{
+          flex: 1,
+          padding: '0.5rem',
+          borderRadius: '5px',
+          border: 'none',
+          backgroundColor: 'rgba(255, 255, 255, 0.9)'
+        }}
+      >
+        <option value="all">Toutes les dates</option>
+        <option value="today">Aujourd'hui</option>
+        <option value="week">Cette semaine</option>
+        <option value="month">Ce mois</option>
+      </select>
 
-        <select
-          value={typeFilter}
-          onChange={(e) => setTypeFilter(e.target.value)}
-          style={{
-            padding: '0.3rem',
-            borderRadius: '5px',
-            border: 'none',
-            backgroundColor: 'rgba(255, 255, 255, 0.9)',
-            flex: 1,
-          }}
-        >
-          <option value="all">Tous les types</option>
-          <option value="maintenance">Maintenance</option>
-          <option value="update">Mise à jour</option>
-          <option value="alert">Alerte</option>
-        </select>
-      </div>
+      {/* Champ pour filtrer par type */}
+      <select
+        value={typeFilter}
+        onChange={(e) => setTypeFilter(e.target.value)}
+        style={{
+          flex: 1,
+          padding: '0.5rem',
+          borderRadius: '5px',
+          border: 'none',
+          backgroundColor: 'rgba(255, 255, 255, 0.9)'
+        }}
+      >
+        <option value="all">Tous les types</option>
+        <option value="maintenance">Maintenance</option>
+        <option value="update">Mise à jour</option>
+        <option value="alert">Alerte</option>
+        <option value="info">Information</option>
+      </select>
+    </div>
+
     </div>
 
     {/* Liste des actualités dynamiques */}
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-      {news.length === 0 ? (
-        <p>Aucune actualité pour le moment.</p>
-      ) : (
-        news.map((entry, index) => (
-          <div key={index} style={{ marginBottom: '1rem' }}>
-            <p style={{ margin: '0', fontWeight: 'bold' }}>{entry.date} :</p>
-            <p style={{ margin: '0.2rem 0 0 0' }}>{entry.text}</p>
-          </div>
-        ))
-      )}
-    </div>
+    {/* Filtrage des news selon texte, date et type */}
+{(() => {
+ const filteredNews = news.filter(entry => {
+  const matchesText = entry.text.toLowerCase().includes(searchText.toLowerCase());
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  
+  const startOfWeek = new Date(today);
+  startOfWeek.setDate(today.getDate() - today.getDay() + 1); // lundi
+  startOfWeek.setHours(0, 0, 0, 0);
+
+  const endOfWeek = new Date(startOfWeek);
+  endOfWeek.setDate(startOfWeek.getDate() + 6);
+  endOfWeek.setHours(23, 59, 59, 999);
+
+  const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+  const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+  endOfMonth.setHours(23, 59, 59, 999);
+  const entryDate = new Date(entry.dateRaw);
+
+const matchesDate =
+  dateFilter === 'all' ||
+  (dateFilter === 'today' &&
+    entryDate.getFullYear() === today.getFullYear() &&
+    entryDate.getMonth() === today.getMonth() &&
+    entryDate.getDate() === today.getDate()
+  ) ||
+  (dateFilter === 'week' &&
+    entryDate >= startOfWeek && entryDate <= endOfWeek
+  ) ||
+  (dateFilter === 'month' &&
+    entryDate >= startOfMonth && entryDate <= endOfMonth
+  );
+
+  const matchesType = typeFilter === 'all' || entry.type === typeFilter;
+
+  return matchesText && matchesDate && matchesType;
+});
+
+  return filteredNews.length === 0 ? (
+    <p>Aucune actualité pour le moment.</p>
+  ) : (
+    filteredNews.map((entry, index) => (
+      <div key={`${entry.date}-${entry.text}-${index}`} style={{ marginBottom: '1rem' }}>
+        <p style={{ margin: '0', fontWeight: 'bold' }}>{entry.date} :</p>
+        <p style={{ margin: '0.2rem 0 0 0' }}>{entry.text}</p>
+        {entry.type && (
+          <span style={{
+            display: 'inline-block',
+            marginTop: '0.5rem',
+            backgroundColor: '#D35400',
+            padding: '0.2rem 0.5rem',
+            borderRadius: '5px',
+            fontSize: '0.8rem',
+            color: 'white'
+          }}>
+            {entry.type === 'maintenance' ? '🛠️ Maintenance' :
+             entry.type === 'update' ? '🔄 Mise à jour' :
+             entry.type === 'alert' ? '⚠️ Alerte' :
+             'ℹ️ Information'}
+          </span>
+        )}
+      </div>
+    ))
+  );
+})()}
+
+  </div>
+
   </aside>
 
       </div>

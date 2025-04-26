@@ -4,17 +4,31 @@ import HomePage from './pages/Home/HomePage';
 import AuthPage from './pages/Auth/AuthPage';
 import ModuleInformation from './pages/ModuleInformation/ModuleInformation';
 import ModuleGestion from './pages/ModuleGestion/ModuleGestion';
-import AdminDeleteRequests from './pages/Modulerequete/AdminDeleteRequests.jsx'; 
+import AdminDeleteRequests from './pages/Modulerequete/AdminDeleteRequests.jsx';
 
 function App() {
+  const storedUser = localStorage.getItem("user");
+  const user = storedUser ? JSON.parse(storedUser) : null;
+
   return (
     <Router>
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/auth" element={<AuthPage />} />
+
+        {/* Accessible à tout le monde */}
         <Route path="/module-information" element={<ModuleInformation />} />
-        <Route path="/module-gestion" element={<ModuleGestion />} />
-        <Route path="/module-requête" element={<AdminDeleteRequests />} /> 
+
+        {/* Accessible SEULEMENT si connecté */}
+        {user && (
+          <>
+            <Route path="/module-gestion" element={<ModuleGestion />} />
+            {/* Accessible en plus si c'est un admin */}
+            {user.role === 'admin' && (
+              <Route path="/module-requête" element={<AdminDeleteRequests />} />
+            )}
+          </>
+        )}
       </Routes>
     </Router>
   );

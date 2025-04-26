@@ -47,13 +47,14 @@ function HomePage() {
 
   const modules = [
     { name: "Module Information", description: "Accès aux informations générales", path: "/module-information" },
-    { name: "Module Visualisation", description: "Visualisation des données et profils", path: "/module-visualisation" },
-    { name: "Module Gestion", description: "Gestion des objets connectés", path: "/module-gestion" },
-    { name: "Module Administration", description: "Panneau de contrôle administrateur", path: "/module-administration" },
-    ...(user?.role === "admin"
-      ? [{ name: "Module Requête", description: "Demandes de suppression", path: "/module-requête" }]
-      : [])
+    ...(user ? [
+      { name: "Module Gestion", description: "Gestion des objets connectés", path: "/module-gestion" },
+      ...(user.role === "admin"
+        ? [{ name: "Module Requête", description: "Demandes de suppression", path: "/module-requête" }]
+        : [])
+    ] : [])
   ];
+  
 
   const creators = [
     { name: "EL HARSAL Abdelah", email: "abdelah.elharsal@example.com" },
