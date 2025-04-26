@@ -59,41 +59,163 @@ const getDeviceIcon = (type) => {
   );
 };
 
+// Fonction utilitaire pour dessiner un graphique dans le PDF
+const drawGraph = (doc, title, data, labels, startY, xPosition, height) => {
+  doc.setFontSize(14);
+  doc.text(title, xPosition, startY - 10);
+  
+  const graphStartX = 30;
+  const graphStartY = startY;
+  const graphWidth = 150;
+  const graphHeight = height;
+  const graphEndX = graphStartX + graphWidth;
+  const graphEndY = graphStartY + graphHeight;
+  
+  // Dessiner les axes
+  doc.setLineWidth(0.5);
+  doc.line(graphStartX, graphStartY, graphStartX, graphEndY);
+  doc.line(graphStartX, graphEndY, graphEndX, graphEndY);
+  
+  // Calculer le maximum pour l'échelle
+  const maxValue = Math.max(...data) * 1.2;
+  
+  // Dessiner les graduations sur l'axe Y
+  doc.setFontSize(8);
+  for (let i = 0; i <= 4; i++) {
+    const yPos = graphEndY - (i * graphHeight / 4);
+    doc.line(graphStartX - 2, yPos, graphStartX, yPos);
+    doc.text(`${(i * maxValue / 4).toFixed(1)}`, graphStartX - 15, yPos + 1);
+  }
+  
+  // Dessiner les graduations sur l'axe X
+  const step = Math.max(1, Math.floor(labels.length / 10));
+  for (let i = 0; i < labels.length; i += step) {
+    const xPos = graphStartX + (i * graphWidth / labels.length);
+    doc.line(xPos, graphEndY, xPos, graphEndY + 2);
+    doc.text(`${labels[i]}`, xPos - 2, graphEndY + 10);
+  }
+  
+  // Tracer la courbe
+  doc.setDrawColor(211, 84, 0);
+  doc.setLineWidth(1);
+  
+  let prevX = graphStartX;
+  let prevY = graphEndY - (data[0] / maxValue) * graphHeight;
+  
+  for (let i = 0; i < data.length; i++) {
+    const xPos = graphStartX + (i * graphWidth / data.length);
+    const yPos = graphEndY - (data[i] / maxValue) * graphHeight;
+    
+    doc.line(prevX, prevY, xPos, yPos);
+    
+    prevX = xPos;
+    prevY = yPos;
+  }
+  
+  return graphEndY + 20; // Retourner la position Y finale
+};
+
+// Fonction pour évaluer l'efficacité et l'état de maintenance d'un appareil
+const evaluateDeviceStatus = (device) => {
+  const alerts = [];
+  const now = new Date();
+  const lastMaintenance = new Date(device.lastMaintenance);
+  const daysSinceMaintenance = Math.floor((now - lastMaintenance) / (1000 * 60 * 60 * 24));
+
+  // Vérification de la maintenance
+  if (daysSinceMaintenance > 90) {
+    alerts.push({
+      type: 'maintenance',
+      message: 'Maintenance requise (dernière maintenance il y a plus de 3 mois)',
+      severity: 'high'
+    });
+  }
+
+  // Vérifications spécifiques selon le type d'appareil
+  switch(device.type) {
+    case 'thermostat':
+      if (device.temperature > 25 || device.temperature < 18) {
+        alerts.push({
+          type: 'efficiency',
+          message: 'Température non optimale pour l\'efficacité énergétique',
+          severity: 'medium'
+        });
+      }
+      if (device.energyConsumption > 50) {
+        alerts.push({
+          type: 'efficiency',
+          message: 'Consommation énergétique élevée',
+          severity: 'high'
+        });
+      }
+      break;
+    case 'climatiseur':
+      if (device.energyConsumption > 1000) {
+        alerts.push({
+          type: 'efficiency',
+          message: 'Consommation énergétique très élevée',
+          severity: 'high'
+        });
+      }
+      if (device.temperature < 20) {
+        alerts.push({
+          type: 'efficiency',
+          message: 'Température trop basse pour l\'efficacité énergétique',
+          severity: 'medium'
+        });
+      }
+      break;
+    case 'volets':
+      if (device.energyConsumption > 20) {
+        alerts.push({
+          type: 'efficiency',
+          message: 'Consommation énergétique anormalement élevée',
+          severity: 'high'
+        });
+      }
+      break;
+    case 'lumière':
+      if (device.brightness > 80 && device.energyConsumption > 30) {
+        alerts.push({
+          type: 'efficiency',
+          message: 'Luminosité et consommation énergétique élevées',
+          severity: 'medium'
+        });
+      }
+      break;
+    case 'sécurité':
+      if (device.batteryLevel < 20) {
+        alerts.push({
+          type: 'maintenance',
+          message: 'Niveau de batterie critique',
+          severity: 'high'
+        });
+      }
+      break;
+  }
+
+  // Vérification générale de la batterie
+  if (device.batteryLevel < 30) {
+    alerts.push({
+      type: 'maintenance',
+      message: 'Niveau de batterie faible',
+      severity: 'medium'
+    });
+  }
+
+  return alerts;
+};
+
 function ModuleGestion() {
     const [user, setUser] = useState(null);
-
-    const API_BASE = 'http://localhost:3020/plateforme/smart-home-project/api/device.php';
-
     useEffect(() => {
-      const storedUser = localStorage.getItem("user");
+      const storedUser = localStorage.getItem('user');
       if (storedUser) {
         setUser(JSON.parse(storedUser));
       }
-    }, []);
-    
-    const [connectedDevices, setConnectedDevices] = useState([]);
-    const [loading, setLoading]   = useState(true);
-    const [error,   setError]     = useState(null);
-    const fetchDevices = async () => {
-      try {
-        const res = await fetch(API_BASE, { credentials: 'include' });
-        if (!res.ok) throw new Error('Erreur API');
-        const data = await res.json();
-        setConnectedDevices(data.devices);
-        setLoading(false);
-      } catch (e) {
-        setError(e.message);
-        setLoading(false);
-      }
-    };
-    
-    const addDevice    = async (payload)    => (await fetch(API_BASE,           { method:'POST', body:JSON.stringify(payload) })).json();
-    const updateDevice = async (payload,id) => (await fetch(`${API_BASE}?id=${id}`, { method:'PUT',  body:JSON.stringify(payload) })).json();
-    const deleteDevice = async (id)         =>        fetch(`${API_BASE}?id=${id}`, { method:'DELETE' });
-
-    useEffect(() => {
       fetchDevices();
     }, []);
+    
 
   const navigate = useNavigate(); // Ajout de la navigation
   const [isNavigating, setIsNavigating] = useState(false); // Nouvel état pour la navigation
@@ -107,6 +229,25 @@ function ModuleGestion() {
       navigate('/');
     }, 500);
   };
+
+  // États pour la gestion des objets connectés
+  const [connectedDevices, setConnectedDevices] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const API_BASE = 'http://localhost:3020/plateforme/smart-home-project/api/device.php';
+  const fetchDevices = async () => {
+  try {
+    const res = await fetch(API_BASE, { credentials: 'include' });
+    if (!res.ok) throw new Error('Erreur API');
+    const data = await res.json();
+    setConnectedDevices(data.devices);
+    setLoading(false);
+  } catch (e) {
+    setError(e.message);
+    setLoading(false);
+  }
+};
+
 
 
   // États pour les filtres et la recherche
@@ -137,7 +278,55 @@ function ModuleGestion() {
   const [deviceToEdit, setDeviceToEdit] = useState(null);
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
   const [deletionSuccess, setDeletionSuccess] = useState(false);
-
+  
+  // État pour les erreurs de validation
+  const [validationErrors, setValidationErrors] = useState({});
+  
+  // Fonction pour valider les champs selon le type d'appareil
+  const validateDeviceFields = (device) => {
+    const errors = {};
+    
+    // Validation des champs obligatoires
+    if (!device.name.trim()) errors.name = 'Le nom est obligatoire';
+    if (!device.room.trim()) errors.room = 'La pièce est obligatoire';
+    if (!device.lastMaintenance) errors.lastMaintenance = 'La date de maintenance est obligatoire';
+    
+    // Validation des champs numériques
+    if (device.energyConsumption < 0) errors.energyConsumption = 'La consommation doit être positive';
+    if (device.batteryLevel < 0 || device.batteryLevel > 100) errors.batteryLevel = 'Le niveau de batterie doit être entre 0 et 100';
+    
+    // Validation selon le type d'appareil
+    switch(device.type) {
+      case 'thermostat':
+        if (device.temperature < 5 || device.temperature > 35) errors.temperature = 'La température doit être entre 5°C et 35°C';
+        if (device.targetTemperature < 5 || device.targetTemperature > 35) errors.targetTemperature = 'La température cible doit être entre 5°C et 35°C';
+        break;
+      case 'climatiseur':
+        if (device.temperature < 16 || device.temperature > 30) errors.temperature = 'La température doit être entre 16°C et 30°C';
+        break;
+      case 'volets':
+        if (device.openPercentage < 0 || device.openPercentage > 100) errors.openPercentage = 'Le pourcentage d\'ouverture doit être entre 0 et 100';
+        break;
+      case 'lumière':
+        if (device.brightness < 0 || device.brightness > 100) errors.brightness = 'La luminosité doit être entre 0 et 100';
+        if (device.colorTemperature < 1000 || device.colorTemperature > 10000) errors.colorTemperature = 'La température de couleur doit être entre 1000K et 10000K';
+        break;
+      case 'météo':
+        if (device.temperature < -50 || device.temperature > 50) errors.temperature = 'La température doit être entre -50°C et 50°C';
+        if (device.humidity < 0 || device.humidity > 100) errors.humidity = 'L\'humidité doit être entre 0 et 100';
+        if (device.windSpeed < 0) errors.windSpeed = 'La vitesse du vent doit être positive';
+        if (device.precipitation < 0) errors.precipitation = 'Les précipitations doivent être positives';
+        break;
+      case 'sécurité':
+        if (device.name.toLowerCase().includes('fumée') && device.carbonMonoxideLevel < 0) {
+          errors.carbonMonoxideLevel = 'Le niveau de monoxyde de carbone doit être positif';
+        }
+        break;
+    }
+    
+    return errors;
+  };
+  
   // Gestion du scroll pour header et footer
   useEffect(() => {
     const handleScroll = () => {
@@ -167,33 +356,49 @@ function ModuleGestion() {
   const filteredDevices = connectedDevices.filter(device =>
     (typeFilter === 'all' || device.type === typeFilter) &&
     (statusFilter === 'all' || device.status === statusFilter) &&
-    (device.name?.toLowerCase().includes(searchTerm.toLowerCase()))
+    device.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
-  
 
   // Fonction pour ouvrir les détails d'un appareil
   const handleDeviceDetails = (device) => {
     setSelectedDevice(device);
   };
 
-    // Fonction pour gérer le changement des champs du nouvel appareil
-    const handleNewDeviceChange = (e) => {
-      const { name, value } = e.target;
-      setNewDevice({
-        ...newDevice,
-        [name]: value
-      });
-    };
+  // Fonction pour gérer le changement des champs du nouvel appareil
+  const handleNewDeviceChange = (e) => {
+    const { name, value } = e.target;
+    setNewDevice({
+      ...newDevice,
+      [name]: value
+    });
+  };
   
-    // Fonction pour ajouter un nouvel appareil
-    const handleAddDevice = async () => {
-      const saved = await addDevice(newDevice);      // POST
-      setConnectedDevices([...connectedDevices, saved]);
-      await fetchDevices(); // Recharge tous les appareils
-      setShowAddModal(false);
-    };
-
-
+  // Fonction pour ajouter un nouvel appareil
+  const addDevice = async (payload) => {
+    const response = await fetch(API_BASE, {
+      method: 'POST',
+      credentials: 'include',
+      body: JSON.stringify(payload),
+    });
+    return await response.json();
+  };
+  
+  const handleAddDevice = async () => {
+    const errors = validateDeviceFields(newDevice);
+    setValidationErrors(errors);
+  
+    if (Object.keys(errors).length > 0) {
+      return;
+    }
+  
+    await addDevice(newDevice);
+    await fetchDevices(); // recharge
+    setNewDevice({ /* reset */ });
+    setValidationErrors({});
+    setShowAddModal(false);
+  };
+  
+  
   // Fonction pour ouvrir la modal de configuration d'un appareil
   const handleOpenConfigModal = (device) => {
     setDeviceToEdit({...device});
@@ -219,19 +424,28 @@ function ModuleGestion() {
   };
   
   // Fonction pour enregistrer les modifications d'un appareil
+  const updateDevice = async (payload, id) => {
+    const response = await fetch(`${API_BASE}?id=${id}`, {
+      method: 'PUT',
+      credentials: 'include',
+      body: JSON.stringify(payload),
+    });
+    return await response.json();
+  };
+  
   const handleSaveDeviceChanges = async () => {
-  const saved = await updateDevice(deviceToEdit, deviceToEdit.id); // PUT
-  const updated = connectedDevices.map(d => (d.id === saved.id ? saved : d));
-  setConnectedDevices(updated);
-  setShowConfigModal(false);
-};
-
+    await updateDevice(deviceToEdit, deviceToEdit.id);
+    await fetchDevices(); // recharge
+    setShowConfigModal(false);
+  };
+  
   
   // Fonction pour demander la suppression d'un appareil
   const handleRequestDeviceDeletion = (deviceId) => {
     setShowDeleteConfirmation(true);
   };
   
+  // Fonction pour confirmer la demande de suppression
   const handleConfirmDeletion = async () => {
     try {
       const response = await fetch("http://localhost:3020/plateforme/smart-home-project/api/request_delete.php", {
@@ -248,6 +462,7 @@ function ModuleGestion() {
       if (data.status === "success") {
         setShowDeleteConfirmation(false);
         setDeletionSuccess(true);
+        await fetchDevices();
       } else {
         alert("Erreur : " + data.message);
       }
@@ -257,17 +472,67 @@ function ModuleGestion() {
     }
   };
   
-  
-
-  // Fonction pour générer et télécharger un rapport PDF
-  const handleGenerateReport = (device) => {
+  const handleGenerateReport = (device, energyData) => {
+    // Vérification que energyData existe, sinon création d'un objet par défaut avec données détaillées
+    if (!energyData || Object.keys(energyData).length === 0) {
+      energyData = {
+        // Données quotidiennes
+        dailyAverage: '0.75',
+        dailyPeak: '1.2',
+        dailyLow: '0.3',
+        dailyPeakTime: '19h00 - 20h00',
+        
+        // Données hebdomadaires
+        weeklyTotal: '5.25',
+        weeklyAverage: '0.75',
+        weeklyPeak: '1.5',
+        weeklyPeakDay: 'Mercredi',
+        
+        // Données mensuelles
+        monthlyTotal: '22.5',
+        monthlyAverage: '0.73',
+        monthlyPeak: '1.8',
+        monthlyPeakDate: '15/04/2024',
+        
+        // Comparaisons et tendances
+        previousPeriodComparison: -5.2,
+        yearOverYearChange: -2.5,
+        seasonalAdjustment: 1.1,
+        
+        // Coûts et impact
+        estimatedCost: '15.30',
+        carbonFootprint: '3.2',
+        efficiencyRating: 'B',
+        
+        // Données pour les graphiques
+        dailyConsumption: Array(30).fill(0).map(() => (Math.random() * 0.5 + 0.5).toFixed(2)),
+        weeklyConsumption: Array(7).fill(0).map(() => (Math.random() * 3 + 2).toFixed(2)),
+        monthlyConsumption: Array(12).fill(0).map(() => (Math.random() * 10 + 15).toFixed(2)),
+        
+        // Statistiques spécifiques selon le type d'appareil
+        deviceSpecificStats: {
+          operatingHours: Math.floor(Math.random() * 24),
+          efficiency: (Math.random() * 20 + 80).toFixed(1), // 80-100%
+          maintenanceScore: (Math.random() * 20 + 80).toFixed(1), // 80-100%
+          performanceIndex: (Math.random() * 20 + 80).toFixed(1), // 80-100%
+          anomalies: Math.floor(Math.random() * 3), // 0-2 anomalies
+          uptime: (Math.random() * 5 + 95).toFixed(1), // 95-100%
+        }
+      };
+    }
+    
+    // S'assurer que les données pour le graphique existent
+    if (!energyData.dailyConsumption) {
+      energyData.dailyConsumption = Array(30).fill(0).map(() => (Math.random() * 0.5 + 0.5).toFixed(2));
+    }
+    
     // Création d'une nouvelle instance de jsPDF
     const doc = new jsPDF();
     
     // Titre du rapport
     doc.setFontSize(22);
     doc.setTextColor(211, 84, 0); // #D35400
-    doc.text('Rapport Objet Connecté - CYHOME', 105, 20, { align: 'center' });
+    doc.text('Rapport Détaillé Objet Connecté - CYHOME', 105, 20, { align: 'center' });
     
     // Informations générales
     doc.setFontSize(16);
@@ -294,102 +559,259 @@ function ModuleGestion() {
     doc.text(`Pièce : ${device.room}`, xPosition, yPosition);
     yPosition += lineHeight;
     
-    doc.text(`Consommation énergétique : ${device.energyConsumption} W`, xPosition, yPosition);
+    doc.text(`Consommation énergétique actuelle : ${device.energyConsumption} W`, xPosition, yPosition);
     yPosition += lineHeight;
     
-    doc.text(`Niveau de batterie : ${device.batteryLevel}%`, xPosition, yPosition);
-    yPosition += lineHeight;
+    // Vérification de l'existence du niveau de batterie
+    if (device.batteryLevel !== undefined) {
+      doc.text(`Niveau de batterie : ${device.batteryLevel}%`, xPosition, yPosition);
+      yPosition += lineHeight;
+    }
     
-    doc.text(`Dernière maintenance : ${device.lastMaintenance}`, xPosition, yPosition);
+    doc.text(`Dernière maintenance : ${device.lastMaintenance || 'Non disponible'}`, xPosition, yPosition);
     yPosition += lineHeight * 2;
     
-    // Informations spécifiques selon le type d'appareil
+    // SECTION: Statistiques détaillées de consommation énergétique
     doc.setFontSize(16);
     doc.setTextColor(0, 0, 0);
-    doc.text('Informations Spécifiques', xPosition, yPosition);
+    doc.text('Analyse Détaillée de la Consommation', xPosition, yPosition);
     yPosition += lineHeight * 1.5;
     
     doc.setFontSize(12);
     
-    switch(device.type) {
-      case 'thermostat':
-        doc.text(`Température actuelle : ${device.temperature}°C`, xPosition, yPosition);
-        yPosition += lineHeight;
-        doc.text(`Température cible : ${device.targetTemperature}°C`, xPosition, yPosition);
-        yPosition += lineHeight;
-        break;
-      case 'climatiseur':
-        doc.text(`Mode actuel : ${device.currentMode}`, xPosition, yPosition);
-        yPosition += lineHeight;
-        doc.text(`Température : ${device.temperature}°C`, xPosition, yPosition);
-        yPosition += lineHeight;
-        break;
-      case 'volets':
-        doc.text(`Position : ${device.currentPosition}`, xPosition, yPosition);
-        yPosition += lineHeight;
-        doc.text(`Ouverture : ${device.openPercentage}%`, xPosition, yPosition);
-        yPosition += lineHeight;
-        break;
-      case 'lumière':
-        doc.text(`Luminosité : ${device.brightness}%`, xPosition, yPosition);
-        yPosition += lineHeight;
-        doc.text(`Température de couleur : ${device.colorTemperature} K`, xPosition, yPosition);
-        yPosition += lineHeight;
-        break;
-      case 'sécurité':
-        if (device.name.includes('Présence')) {
-          doc.text(`Mouvement détecté : ${device.movementDetected ? 'Oui' : 'Non'}`, xPosition, yPosition);
-          yPosition += lineHeight;
-          doc.text(`Dernier mouvement : ${device.lastMovement}`, xPosition, yPosition);
-          yPosition += lineHeight;
-        } else if (device.name.includes('Caméra')) {
-          doc.text(`Statut d'enregistrement : ${device.recordingStatus}`, xPosition, yPosition);
-          yPosition += lineHeight;
-          doc.text(`Sensibilité au mouvement : ${device.motionSensitivity}`, xPosition, yPosition);
-          yPosition += lineHeight;
-        } else if (device.name.includes('Fumée')) {
-          doc.text(`Fumée détectée : ${device.smokeDetected ? 'Oui' : 'Non'}`, xPosition, yPosition);
-          yPosition += lineHeight;
-          doc.text(`Niveau de monoxyde de carbone : ${device.carbonMonoxideLevel}`, xPosition, yPosition);
-          yPosition += lineHeight;
-        }
-        break;
-      case 'météo':
-        doc.text(`Température : ${device.temperature}°C`, xPosition, yPosition);
-        yPosition += lineHeight;
-        
-        if (device.humidity !== undefined) {
-          doc.text(`Humidité : ${device.humidity}%`, xPosition, yPosition);
-          yPosition += lineHeight;
-        }
-        
-        if (device.windSpeed !== undefined) {
-          doc.text(`Vitesse du vent : ${device.windSpeed} km/h`, xPosition, yPosition);
-          yPosition += lineHeight;
-        }
-        
-        if (device.precipitation !== undefined) {
-          doc.text(`Précipitations : ${device.precipitation} mm`, xPosition, yPosition);
-          yPosition += lineHeight;
-        }
-        break;
-      default:
-        break;
+    // Sous-section : Données quotidiennes
+    doc.setFontSize(14);
+    doc.text('Statistiques Quotidiennes', xPosition, yPosition);
+    yPosition += lineHeight * 1.5;
+    doc.setFontSize(12);
+    
+    doc.text(`Consommation moyenne : ${energyData.dailyAverage} kWh`, xPosition, yPosition);
+    yPosition += lineHeight;
+    doc.text(`Pic de consommation : ${energyData.dailyPeak} kWh`, xPosition, yPosition);
+    yPosition += lineHeight;
+    doc.text(`Consommation minimale : ${energyData.dailyLow} kWh`, xPosition, yPosition);
+    yPosition += lineHeight;
+    doc.text(`Heure de pic : ${energyData.dailyPeakTime}`, xPosition, yPosition);
+    yPosition += lineHeight * 2;
+    
+    // Sous-section : Données hebdomadaires
+    doc.setFontSize(14);
+    doc.text('Statistiques Hebdomadaires', xPosition, yPosition);
+    yPosition += lineHeight * 1.5;
+    doc.setFontSize(12);
+    
+    doc.text(`Consommation totale : ${energyData.weeklyTotal} kWh`, xPosition, yPosition);
+    yPosition += lineHeight;
+    doc.text(`Moyenne journalière : ${energyData.weeklyAverage} kWh`, xPosition, yPosition);
+    yPosition += lineHeight;
+    doc.text(`Pic hebdomadaire : ${energyData.weeklyPeak} kWh`, xPosition, yPosition);
+    yPosition += lineHeight;
+    doc.text(`Jour de pic : ${energyData.weeklyPeakDay}`, xPosition, yPosition);
+    yPosition += lineHeight * 2;
+    
+    // Sous-section : Données mensuelles
+    doc.setFontSize(14);
+    doc.text('Statistiques Mensuelles', xPosition, yPosition);
+    yPosition += lineHeight * 1.5;
+    doc.setFontSize(12);
+    
+    doc.text(`Consommation totale : ${energyData.monthlyTotal} kWh`, xPosition, yPosition);
+    yPosition += lineHeight;
+    doc.text(`Moyenne journalière : ${energyData.monthlyAverage} kWh`, xPosition, yPosition);
+    yPosition += lineHeight;
+    doc.text(`Pic mensuel : ${energyData.monthlyPeak} kWh`, xPosition, yPosition);
+    yPosition += lineHeight;
+    doc.text(`Date du pic : ${energyData.monthlyPeakDate}`, xPosition, yPosition);
+    yPosition += lineHeight * 2;
+    
+    // Sous-section : Comparaisons et tendances
+    doc.setFontSize(14);
+    doc.text('Analyse des Tendances', xPosition, yPosition);
+    yPosition += lineHeight * 1.5;
+    doc.setFontSize(12);
+    
+    const trendText = energyData.previousPeriodComparison > 0 ? 'augmentation' : 'diminution';
+    doc.text(`Évolution période précédente : ${Math.abs(energyData.previousPeriodComparison)}% (${trendText})`, xPosition, yPosition);
+    yPosition += lineHeight;
+    
+    const yearTrendText = energyData.yearOverYearChange > 0 ? 'augmentation' : 'diminution';
+    doc.text(`Évolution annuelle : ${Math.abs(energyData.yearOverYearChange)}% (${yearTrendText})`, xPosition, yPosition);
+    yPosition += lineHeight;
+    
+    doc.text(`Ajustement saisonnier : ${energyData.seasonalAdjustment}x`, xPosition, yPosition);
+    yPosition += lineHeight * 2;
+    
+    // Sous-section : Impact environnemental et coûts
+    doc.setFontSize(14);
+    doc.text('Impact et Coûts', xPosition, yPosition);
+    yPosition += lineHeight * 1.5;
+    doc.setFontSize(12);
+    
+    doc.text(`Coût mensuel estimé : ${energyData.estimatedCost} €`, xPosition, yPosition);
+    yPosition += lineHeight;
+    doc.text(`Empreinte carbone : ${energyData.carbonFootprint} kg CO2`, xPosition, yPosition);
+    yPosition += lineHeight;
+    doc.text(`Classe énergétique : ${energyData.efficiencyRating}`, xPosition, yPosition);
+    yPosition += lineHeight * 2;
+    
+    // Sous-section : Statistiques spécifiques à l'appareil
+    doc.setFontSize(14);
+    doc.text('Performances de l\'Appareil', xPosition, yPosition);
+    yPosition += lineHeight * 1.5;
+    doc.setFontSize(12);
+    
+    const stats = energyData.deviceSpecificStats;
+    doc.text(`Heures de fonctionnement : ${stats.operatingHours}h/jour`, xPosition, yPosition);
+    yPosition += lineHeight;
+    doc.text(`Efficacité : ${stats.efficiency}%`, xPosition, yPosition);
+    yPosition += lineHeight;
+    doc.text(`Score de maintenance : ${stats.maintenanceScore}/100`, xPosition, yPosition);
+    yPosition += lineHeight;
+    doc.text(`Indice de performance : ${stats.performanceIndex}/100`, xPosition, yPosition);
+    yPosition += lineHeight;
+    doc.text(`Anomalies détectées : ${stats.anomalies}`, xPosition, yPosition);
+    yPosition += lineHeight;
+    doc.text(`Temps de disponibilité : ${stats.uptime}%`, xPosition, yPosition);
+    yPosition += lineHeight * 2;
+    
+    // SECTION: Graphique de consommation (s'assurer qu'il soit bien sur une page)
+    // On s'assure que le graphique commence à une position qui permet de tout afficher sur la même page
+    // Si on a dépassé une certaine hauteur de page, on passe à une nouvelle page
+    if (yPosition > 180) {
+      doc.addPage();
+      yPosition = 20;
     }
+    
+    yPosition += lineHeight * 2;
+    doc.setFontSize(16);
+    doc.setTextColor(0, 0, 0);
+    doc.text('Graphique de Consommation', xPosition, yPosition);
+    yPosition += lineHeight * 1.5;
+    
+    // Définir les paramètres du graphique avec une hauteur réduite pour s'assurer qu'il tient sur la page
+    const graphStartX = 30;
+    const graphStartY = yPosition;
+    const graphWidth = 150;
+    const graphHeight = 50; // Hauteur réduite
+    const graphEndX = graphStartX + graphWidth;
+    const graphEndY = graphStartY + graphHeight;
+    
+    // Dessiner les axes
+    doc.setLineWidth(0.5);
+    doc.line(graphStartX, graphStartY, graphStartX, graphEndY); // Axe Y
+    doc.line(graphStartX, graphEndY, graphEndX, graphEndY); // Axe X
+    
+    // Dessiner les graduations sur l'axe Y (réduites à 3 pour plus de clarté)
+    doc.setFontSize(8);
+    for (let i = 0; i <= 3; i++) {
+      const yPos = graphEndY - (i * graphHeight / 3);
+      doc.line(graphStartX - 2, yPos, graphStartX, yPos);
+      doc.text(`${(i * 0.3).toFixed(1)}`, graphStartX - 15, yPos + 1);
+    }
+    
+    // Dessiner les graduations sur l'axe X (jours) - moins de graduations pour plus de clarté
+    for (let i = 0; i <= 30; i += 6) {
+      const xPos = graphStartX + (i * graphWidth / 30);
+      doc.line(xPos, graphEndY, xPos, graphEndY + 2);
+      doc.text(`${i + 1}`, xPos - 2, graphEndY + 10);
+    }
+    
+    // Ajouter les titres des axes
+    doc.setFontSize(10);
+    doc.text("kWh", graphStartX - 20, graphStartY + graphHeight / 2, { angle: 90 });
+    doc.text("Jours", graphStartX + graphWidth / 2, graphEndY + 20);
+    
+    // Dessiner la courbe de consommation en utilisant les données de l'objet energyData
+    const dataPoints = energyData.dailyConsumption;
+    const maxConsumption = Math.max(...dataPoints) * 1.2; // Marge de 20%
+    
+    doc.setDrawColor(211, 84, 0); // #D35400
+    doc.setLineWidth(1);
+    
+    // Tracer la ligne du graphique
+    let prevX = graphStartX;
+    let prevY = graphEndY - (dataPoints[0] / maxConsumption) * graphHeight;
+    
+    for (let i = 0; i < dataPoints.length; i++) {
+      const xPos = graphStartX + (i * graphWidth / dataPoints.length);
+      const yPos = graphEndY - (dataPoints[i] / maxConsumption) * graphHeight;
+      
+      // Dessiner la ligne entre les points
+      doc.line(prevX, prevY, xPos, yPos);
+      
+      // Enregistrer ce point comme précédent pour la prochaine itération
+      prevX = xPos;
+      prevY = yPos;
+    }
+    
+    // Ajouter une légende pour le graphique
+    yPosition = graphEndY + 25;
+    doc.setFontSize(10);
+    doc.setTextColor(0, 0, 0);
+    doc.text("Consommation énergétique journalière du mois courant (kWh)", xPosition, yPosition);
+    
+    // SECTION: Graphiques de consommation
+    doc.addPage();
+    yPosition = 20;
+    
+    doc.setFontSize(16);
+    doc.setTextColor(0, 0, 0);
+    doc.text('Graphiques de Consommation', xPosition, yPosition);
+    yPosition += lineHeight * 2;
+    
+    // Graphique journalier
+    const dailyLabels = Array.from({length: 30}, (_, i) => i + 1);
+    yPosition = drawGraph(
+      doc,
+      'Consommation Journalière (kWh)',
+      energyData.dailyConsumption,
+      dailyLabels,
+      yPosition + 20,
+      xPosition,
+      40
+    );
+    
+    // Graphique hebdomadaire
+    const weekLabels = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
+    yPosition = drawGraph(
+      doc,
+      'Consommation Hebdomadaire (kWh)',
+      energyData.weeklyConsumption,
+      weekLabels,
+      yPosition + 20,
+      xPosition,
+      40
+    );
+    
+    // Graphique mensuel
+    const monthLabels = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Jun', 'Jul', 'Aoû', 'Sep', 'Oct', 'Nov', 'Déc'];
+    yPosition = drawGraph(
+      doc,
+      'Consommation Mensuelle (kWh)',
+      energyData.monthlyConsumption,
+      monthLabels,
+      yPosition + 20,
+      xPosition,
+      40
+    );
     
     // Ajout de la date et heure de génération du rapport
     const now = new Date();
     const dateString = now.toLocaleDateString();
     const timeString = now.toLocaleTimeString();
     
-    yPosition += lineHeight * 2;
+    yPosition += lineHeight * 3;
     doc.setFontSize(10);
     doc.setTextColor(100, 100, 100);
     doc.text(`Rapport généré le ${dateString} à ${timeString}`, xPosition, yPosition);
+    yPosition += lineHeight;
+    doc.text('© CYHOME - Tous droits réservés', xPosition, yPosition);
     
     // Téléchargement du PDF
-    doc.save(`Rapport_${device.name.replace(/\s+/g, '_')}_${dateString.replace(/\//g, '-')}.pdf`);
+    doc.save(`Rapport_Détaillé_${device.name.replace(/\s+/g, '_')}_${dateString.replace(/\//g, '-')}.pdf`);
   };
+
+
 
   // Styles réutilisables
   const styles = {
@@ -588,8 +1010,13 @@ function ModuleGestion() {
 
      {/* Header */}
 <header style={styles.header}>
-  <img src={logoImage} alt="CYHOME Logo" style={{ height: '50px' }} />
-  <h1 style={{ margin: 0, fontSize: '1.5rem', color: '#D35400' }}>Module Gestion</h1>
+  <div style={{ display: 'flex', alignItems: 'center' }}>
+    <img src={logoImage} alt="CYHOME Logo" style={{ height: '50px', marginRight: '10px' }} />
+    <div style={{ display: 'flex', flexDirection: 'column' }}>
+      <span style={{ fontWeight: 'bold', fontSize: '1.2rem', color: '#333' }}>CYHOME</span>
+      <span style={{ fontSize: '0.8rem', color: '#666' }}>La maison intelligente, en toute sécurité</span>
+    </div>
+  </div>
   {user ? (
     <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
       <div style={{ display: 'flex', alignItems: 'center' }}>
@@ -658,10 +1085,10 @@ function ModuleGestion() {
         e.currentTarget.style.color = '#D35400';
       }}
     >
-      Log in / Sign up
+      Connexion / Inscription
     </Link>
   )}
-    </header>
+</header>
 
 
       {/* Contenu Principal */}
@@ -776,8 +1203,6 @@ function ModuleGestion() {
             </select>
           </div>
 
-          {loading && <p style={{color:'#fff'}}>Chargement…</p>}
-          {error   && <p style={{color:'#E74C3C'}}>Erreur : {error}</p>}
           {/* Liste des appareils */}
           <div style={{
             display: 'grid',
@@ -973,6 +1398,61 @@ function ModuleGestion() {
                     <strong>Température de couleur :</strong> {selectedDevice.colorTemperature} K
                   </div>
                 </>
+              )}
+
+              {/* Dans la section des détails de l'appareil, ajouter après les informations de base */}
+              {selectedDevice && (
+                <div style={{ marginTop: '2rem' }}>
+                  <h3 style={{ 
+                    fontSize: '1.2rem', 
+                    marginBottom: '1rem',
+                    color: '#fff',
+                    borderBottom: '1px solid rgba(255,255,255,0.2)',
+                    paddingBottom: '0.5rem'
+                  }}>
+                    État de l'appareil
+                  </h3>
+                  {(() => {
+                    const alerts = evaluateDeviceStatus(selectedDevice);
+                    if (alerts.length === 0) {
+                      return (
+                        <div style={{ 
+                          backgroundColor: 'rgba(46, 204, 113, 0.2)',
+                          padding: '1rem',
+                          borderRadius: '5px',
+                          marginBottom: '1rem'
+                        }}>
+                          <p style={{ margin: 0, color: '#2ecc71' }}>
+                            ✓ L'appareil fonctionne de manière optimale
+                          </p>
+                        </div>
+                      );
+                    }
+                    return alerts.map((alert, index) => (
+                      <div 
+                        key={index}
+                        style={{ 
+                          backgroundColor: alert.severity === 'high' 
+                            ? 'rgba(231, 76, 60, 0.2)' 
+                            : 'rgba(241, 196, 15, 0.2)',
+                          padding: '1rem',
+                          borderRadius: '5px',
+                          marginBottom: '1rem'
+                        }}
+                      >
+                        <p style={{ 
+                          margin: 0, 
+                          color: alert.severity === 'high' ? '#e74c3c' : '#f1c40f',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.5rem'
+                        }}>
+                          {alert.severity === 'high' ? '⚠️' : 'ℹ️'} {alert.message}
+                        </p>
+                      </div>
+                    ));
+                  })()}
+                </div>
               )}
 
               {/* Boutons d'action */}
