@@ -1,6 +1,7 @@
 <?php
 session_start();
 require_once 'connect.php';
+require_once 'pointsManager.php'; 
 
 // Forcer le type de contenu JSON et gérer les CORS
 header("Content-Type: application/json");
@@ -43,6 +44,18 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             $_SESSION['prenom']    = $user['prenom'];
             $_SESSION['birthdate'] = $user['birthdate'];
 
+            // ✅ Ajouter 0.25 points pour connexion
+            ajouterPoints($user['id'], 0.25);
+
+            // Recharger les nouveaux points et niveau après ajout
+            $stmt = $pdo->prepare("SELECT points, niveau FROM users WHERE id = ?");
+            $stmt->execute([$user['id']]);
+            $updated = $stmt->fetch();
+
+            // Mettre à jour la session
+            $_SESSION['points'] = $updated['points'];
+            $_SESSION['niveau'] = $updated['niveau'];
+
             echo json_encode([
                 'status' => 'success',
                 'message' => 'Connexion réussie.',
@@ -52,8 +65,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                     'email'    => $user['email'],
                     'photo'    => $user['photo'],
                     'role'     => $user['role'],
-                    'niveau'   => $user['niveau'],
-                    'points'   => $user['points'],
+                    'niveau'   => $updated['niveau'], // on envoie le nouveau niveau
+                    'points'   => $updated['points'], // on envoie les points mis à jour
                     'nom'      => $user['nom'],
                     'prenom'   => $user['prenom'],
                     'birthdate'=> $user['birthdate']

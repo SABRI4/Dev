@@ -236,20 +236,28 @@ function ModuleGestion() {
   const [error, setError] = useState(null);
   const API_BASE = 'http://localhost:3020/plateforme/smart-home-project/api/device.php';
   const fetchDevices = async () => {
-  try {
-    const res = await fetch(API_BASE, { credentials: 'include' });
-    if (!res.ok) throw new Error('Erreur API');
-    const data = await res.json();
-    setConnectedDevices(data.devices);
-    setLoading(false);
-  } catch (e) {
-    setError(e.message);
-    setLoading(false);
-  }
-};
-
-
-
+    try {
+      const res = await fetch(API_BASE, { credentials: 'include' });
+      if (!res.ok) throw new Error('Erreur API');
+  
+      const data = await res.json();
+  
+      // Mettre à jour l'utilisateur
+      if (data.user) {
+        const updatedUser = { ...data.user };
+        setUser(updatedUser);
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+      }
+  
+      setConnectedDevices(data.devices);
+      setLoading(false);
+  
+    } catch (e) {
+      setError(e.message);
+      setLoading(false);
+    }
+  };
+  
   // États pour les filtres et la recherche
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
@@ -441,9 +449,36 @@ function ModuleGestion() {
   
   
   // Fonction pour demander la suppression d'un appareil
-  const handleRequestDeviceDeletion = (deviceId) => {
-    setShowDeleteConfirmation(true);
+  const handleRequestDeviceDeletion = async (deviceId) => {
+    if (user && user.role === 'admin') {
+      // Cas ADMIN, on supprime directement
+      const confirmDelete = window.confirm("Êtes-vous sûr de vouloir supprimer cet appareil ?");
+      if (!confirmDelete) return;
+  
+      try {
+        const response = await fetch(`${API_BASE}?id=${deviceId}`, {
+          method: "DELETE",
+          credentials: "include",
+        });
+  
+        const data = await response.json();
+  
+        if (data.status === "success") {
+          alert("Appareil supprimé avec succès !");
+          await fetchDevices();
+        } else {
+          alert("Erreur : " + data.message);
+        }
+      } catch (error) {
+        console.error("Erreur lors de la suppression directe :", error);
+        alert("Erreur réseau.");
+      }
+    } else {
+      // Cas utilisateur normal, on va demander la suppression à l'admin
+      setShowDeleteConfirmation(true);
+    }
   };
+  
   
   // Fonction pour confirmer la demande de suppression
   const handleConfirmDeletion = async () => {
@@ -1502,7 +1537,7 @@ function ModuleGestion() {
                     e.currentTarget.style.color = 'white';
                   }}
                 >
-                  Demander suppression à l'administrateur
+                {user && user.role === 'admin' ? 'Supprimer l\'appareil' : 'Demander suppression à l\'administrateur'}
                 </button>
                 <button
                   onClick={() => handleGenerateReport(selectedDevice)}

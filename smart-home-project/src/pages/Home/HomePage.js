@@ -4,6 +4,7 @@ import backgroundImage from '../../Pictures/kitchen-background.jpg';
 import logoImage from '../../Pictures/cyhome-logo.png';
 import cytechLogo from '../../Pictures/cytech-logo.png';
 
+
 function HomePage() {
   const navigate = useNavigate();
   const [isNavigating, setIsNavigating] = useState(false);

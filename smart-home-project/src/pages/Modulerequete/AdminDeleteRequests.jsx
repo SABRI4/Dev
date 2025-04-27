@@ -52,7 +52,7 @@ function AdminDeleteRequests() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const navigate = useNavigate();
-
+  const [user, setUser] = useState(null);
   const API_URL = 'http://localhost:3020/plateforme/smart-home-project/api/deleteRequest.php';
   const VALIDATE_URL = 'http://localhost:3020/plateforme/smart-home-project/api/validateDelete.php';
 
@@ -82,16 +82,25 @@ function AdminDeleteRequests() {
         body: JSON.stringify({ request_id: requestId }),
       });
       const data = await res.json();
+  
+      if (data.user) {
+        const updatedUser = { ...data.user };
+        setUser(updatedUser);
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+      }
+  
       if (data.status === 'success') {
         setRequests(prev => prev.filter(r => r.id !== requestId));
         alert('Suppression effectuée');
       } else {
         alert(data.message || 'Erreur lors de la validation');
       }
+  
     } catch {
       alert('Erreur réseau');
     }
   };
+  
 
   return (
     <div

@@ -41,10 +41,28 @@ function respond(bool $success, array $data = [], int $code = 200): never
 {
     http_response_code($code);
     header('Content-Type: application/json');
+
+    // ➔ Si l'utilisateur est connecté, injecter ses infos à chaque réponse
+    if (isset($_SESSION['user_id'])) {
+        $data['user'] = [
+            'id'       => $_SESSION['user_id'],
+            'username' => $_SESSION['username'] ?? '',
+            'photo'    => $_SESSION['photo'] ?? '',
+            'role'     => $_SESSION['role'] ?? 'simple',
+            'points'   => $_SESSION['points'] ?? 0,
+            'niveau'   => $_SESSION['niveau'] ?? 'debutant',
+            'email'    => $_SESSION['email'] ?? '',
+            'nom'      => $_SESSION['nom'] ?? '',
+            'prenom'   => $_SESSION['prenom'] ?? '',
+            'birthdate'=> $_SESSION['birthdate'] ?? '',
+        ];
+    }
+    
+
     echo json_encode(
         $success
-          ? ['status'=>'success'] + $data
-          : ['status'=>'error']   + $data
+          ? ['status' => 'success'] + $data
+          : ['status' => 'error'] + $data
     );
     exit();
 }

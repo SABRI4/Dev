@@ -77,6 +77,13 @@ function ModuleVisualisation() {
       const response = await fetch(API_URL, { credentials: 'include' });
       if (!response.ok) throw new Error('Erreur lors de la récupération des appareils');
       const data = await response.json();
+  
+      if (data.user) {
+        const updatedUser = { ...data.user };
+        setUser(updatedUser);
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+      }
+  
       setConnectedDevices(data.devices);
       setLoading(false);
     } catch (err) {
@@ -84,6 +91,7 @@ function ModuleVisualisation() {
       setLoading(false);
     }
   };
+  
 
   const navigate = useNavigate(); // Ajout de la navigation
   const [isNavigating, setIsNavigating] = useState(false); // Nouvel état pour la navigation

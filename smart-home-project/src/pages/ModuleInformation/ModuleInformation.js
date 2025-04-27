@@ -89,15 +89,24 @@ function ModuleInformation() {
     try {
       const response = await fetch('http://localhost:3020/plateforme/smart-home-project/api/device.php', { credentials: 'include' });
       const data = await response.json();
+  
+      if (data.user) {
+        const updatedUser = { ...data.user };
+        setUser(updatedUser);
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+      }
+  
       const devicesWithIcons = data.devices.map(device => ({
         ...device,
         icon: getIconForType(device.type)
       }));
       setConnectedDevices(devicesWithIcons);
+  
     } catch (error) {
       console.error('Erreur fetchDevices:', error);
     }
   };
+  
   
   useEffect(() => {
     fetchDevices();
