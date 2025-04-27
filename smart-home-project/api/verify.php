@@ -9,9 +9,9 @@ if (isset($_GET['token'])) {
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
     if ($user) {
-        $updateStmt = $pdo->prepare("UPDATE users SET is_verified = 1, role = 'simple' WHERE id = :id");
-        $stmtUpdate->execute([':token' => $token]);
-
+        $stmtUpdate = $pdo->prepare("UPDATE users SET is_verified = 1, role = 'simple' WHERE id = :id");
+        $stmtUpdate->execute([':id' => $user['id']]);
+        
         echo "✅ Votre compte a été vérifié avec succès ! Vous pouvez maintenant vous connecter.";
     } else {
         echo "❌ Token invalide ou compte déjà vérifié.";

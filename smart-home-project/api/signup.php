@@ -72,7 +72,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     // Insertion dans la base
     $sql = "INSERT INTO users 
-        (username, email, password, nom, prenom, photo, role, points, birthdate, gender, age, member_type, verification_token, verified) 
+        (username, email, password, nom, prenom, photo, role, points, birthdate, gender, age, member_type, verification_token, is_verified) 
         VALUES 
         (:username, :email, :password, :nom, :prenom, :photo, :role, :points, :birthdate, :gender, :age, :member_type, :verification_token, 0)";
 
