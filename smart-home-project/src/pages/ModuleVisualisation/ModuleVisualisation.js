@@ -4,7 +4,6 @@ import logoImage from '../../Pictures/cyhome-logo.png';
 import cytechLogo from '../../Pictures/cytech-logo.png';
 import backgroundImage from '../../Pictures/kitchen-background.jpg';
 
-// Remplacer la section DeviceIcons actuelle par celle-ci :
 const DeviceIcons = {
   thermostat: (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="40" height="40" fill="#FFFFFF">
