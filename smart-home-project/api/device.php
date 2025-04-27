@@ -26,7 +26,7 @@ if ($method === 'GET') {
 
         if ($device) {
             // Ajouter 0.5 points pour consultation d'un device
-            if (isset($_SESSION['user_id'])) {
+            if (isset($_SESSION['user_id']) && !empty($_SESSION['user_id'])) {
                 ajouterPoints($_SESSION['user_id'], 0.5);
                 updateSession($_SESSION['user_id']);
             }
@@ -91,7 +91,7 @@ if ($method === 'PUT' && $id) {
     $sql = "UPDATE devices SET " . implode(',', $cols) . " WHERE id=?";
     $pdo->prepare($sql)->execute($vals);
 
-    // ✅ Ajouter 1 point pour modification
+    // Ajouter 1 point pour modification
     if (isset($_SESSION['user_id'])) {
         ajouterPoints($_SESSION['user_id'], 1);
         updateSession($_SESSION['user_id']);
@@ -110,6 +110,7 @@ respond(false, ['message' => 'Méthode non autorisée'], 405);
 
 //Fonction pour mettre à jour la session (points, niveau, role)
 function updateSession($userId) {
+    if (empty($userId)) return;
     global $pdo;
     $stmt = $pdo->prepare("SELECT points, niveau, role FROM users WHERE id = ?");
     $stmt->execute([$userId]);
