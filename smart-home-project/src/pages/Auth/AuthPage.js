@@ -19,6 +19,8 @@ function AuthPage() {
   const [memberType, setMemberType] = useState('');
   const [profileImage, setProfileImage] = useState(null);
   const [previewURL, setPreviewURL] = useState('');
+  const [nom, setNom] = useState('');
+  const [prenom, setPrenom] = useState('');
   
   // États pour les animations
   const [isAnimating, setIsAnimating] = useState(false);
@@ -76,6 +78,8 @@ function AuthPage() {
       formData.append("username", username);
       formData.append("email", email);
       formData.append("password", password);
+      formData.append("nom", nom);
+      formData.append("prenom", prenom);
       formData.append("birthdate", birthdate);
       formData.append("gender", gender);
       formData.append("age", age);
@@ -345,7 +349,26 @@ function AuthPage() {
                 onMouseLeave={(e) => e.target.style.borderColor = '#e0e0e0'}
               />
               
-              {/* Nouveaux champs */}
+              {/* Champs pour nom et prénom avec le même style */}
+              <input
+                type="text"
+                placeholder="Nom"
+                value={nom}
+                onChange={(e) => setNom(e.target.value)}
+                style={inputStyle}
+                onMouseEnter={(e) => e.target.style.borderColor = '#D35400'}
+                onMouseLeave={(e) => e.target.style.borderColor = '#e0e0e0'}
+              />
+              <input
+                type="text"
+                placeholder="Prénom"
+                value={prenom}
+                onChange={(e) => setPrenom(e.target.value)}
+                style={inputStyle}
+                onMouseEnter={(e) => e.target.style.borderColor = '#D35400'}
+                onMouseLeave={(e) => e.target.style.borderColor = '#e0e0e0'}
+              />
+              
               <input
                 type="number"
                 placeholder="Âge"

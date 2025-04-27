@@ -86,6 +86,8 @@ CREATE TABLE IF NOT EXISTS `users` (
   `id` int NOT NULL AUTO_INCREMENT,
   `username` varchar(100) COLLATE utf8mb4_general_ci NOT NULL,
   `password` varchar(255) COLLATE utf8mb4_general_ci NOT NULL,
+  `nom` varchar(100) COLLATE utf8mb4_general_ci NOT NULL,
+  `prenom` varchar(100) COLLATE utf8mb4_general_ci NOT NULL,
   `email` varchar(100) COLLATE utf8mb4_general_ci NOT NULL,
   `photo` varchar(255) COLLATE utf8mb4_general_ci NOT NULL,
   `role` enum('visiteur','simple','complexe','admin') COLLATE utf8mb4_general_ci DEFAULT 'simple',
@@ -103,9 +105,9 @@ CREATE TABLE IF NOT EXISTS `users` (
 -- Déchargement des données de la table `users`
 --
 
-INSERT INTO `users` (`id`, `username`, `password`, `email`, `photo`, `role`, `points`, `niveau`, `birthdate`, `gender`, `age`, `member_type`) VALUES
-(3, 'Admin', '$2y$10$unIL4WquuCRDXcnJGtJU/OYNfkj84ki781lZvzWzxq5W5EwZedpWa', 'comptedepense205@gmail.com', 'http://localhost:3020/plateforme/smart-home-project/api/uploads/avatar.jpg', 'admin', 0, 'expert', '2025-04-10', '', 50, 'grandparent'),
-(7, 'admin123', '$2y$10$lxS/RfRyYClQfTX6ba4tuOyQjVh957W1GsfXf9E5nVNlOunBSq7Py', 'younesysabri53@gmail.com', 'http://localhost:3020/plateforme/smart-home-project/api/uploads/avatar.jpg', 'simple', 0, 'debutant', '0000-00-00', '', 0, '');
+INSERT INTO `users` (`id`, `username`, `password`,`nom`,`prenom`, `email`, `photo`, `role`, `points`, `niveau`, `birthdate`, `gender`, `age`, `member_type`) VALUES
+(3, 'Admin', '$2y$10$unIL4WquuCRDXcnJGtJU/OYNfkj84ki781lZvzWzxq5W5EwZedpWa', 'DuChef', 'Admin', 'comptedepense205@gmail.com', 'http://localhost:3020/plateforme/smart-home-project/api/uploads/avatar.jpg', 'admin', 0, 'expert', '2025-04-10', '', 50, 'grandparent'),
+(7, 'admin123', '$2y$10$lxS/RfRyYClQfTX6ba4tuOyQjVh957W1GsfXf9E5nVNlOunBSq7Py', 'Sabri', 'Younes', 'younesysabri53@gmail.com', 'http://localhost:3020/plateforme/smart-home-project/api/uploads/avatar.jpg', 'simple', 0, 'debutant', '0000-00-00', '', 0, '');
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

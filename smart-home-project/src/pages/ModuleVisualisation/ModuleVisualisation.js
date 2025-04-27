@@ -57,14 +57,34 @@ const getDeviceIcon = (type) => {
 };
 
 function ModuleVisualisation() {
-    const [user, setUser] = useState(null);
-    useEffect(() => {
-      const storedUser = localStorage.getItem('user');
-      if (storedUser) {
-        setUser(JSON.parse(storedUser));
-      }
-    }, []);
+  const [user, setUser] = useState(null);
+  const [connectedDevices, setConnectedDevices] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
+  const API_URL = 'http://localhost:3020/plateforme/smart-home-project/api/device.php';
+
+  useEffect(() => {
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      setUser(JSON.parse(storedUser));
+    }
+
+    fetchDevices();
+  }, []);
+
+  const fetchDevices = async () => {
+    try {
+      const response = await fetch(API_URL, { credentials: 'include' });
+      if (!response.ok) throw new Error('Erreur lors de la récupération des appareils');
+      const data = await response.json();
+      setConnectedDevices(data.devices);
+      setLoading(false);
+    } catch (err) {
+      setError(err.message);
+      setLoading(false);
+    }
+  };
 
   const navigate = useNavigate(); // Ajout de la navigation
   const [isNavigating, setIsNavigating] = useState(false); // Nouvel état pour la navigation
@@ -78,108 +98,6 @@ function ModuleVisualisation() {
       navigate('/');
     }, 500);
   };
-
-  // États pour la gestion des objets connectés
-  const [connectedDevices, setConnectedDevices] = useState([
-    {
-      id: 1,
-      name: 'Thermostat Salon',
-      type: 'thermostat',
-      status: 'actif',
-      room: 'Salon',
-      temperature: 22,
-      targetTemperature: 23,
-      energyConsumption: 45,
-      lastMaintenance: '2024-03-15',
-      batteryLevel: 85
-    },
-    {
-      id: 2,
-      name: 'Climatiseur Chambre',
-      type: 'climatiseur',
-      status: 'inactif',
-      room: 'Chambre Principale',
-      currentMode: 'Veille',
-      temperature: 18,
-      energyConsumption: 0,
-      lastMaintenance: '2024-02-20',
-      batteryLevel: 100
-    },
-    {
-      id: 3,
-      name: 'Volets Automatiques Salon',
-      type: 'volets',
-      status: 'actif',
-      room: 'Salon',
-      openPercentage: 50,
-      currentPosition: 'Mi-ouverts',
-      energyConsumption: 15,
-      lastMaintenance: '2024-04-01',
-      batteryLevel: 75
-    },
-    {
-      id: 4,
-      name: 'Capteur de Présence Entrée',
-      type: 'sécurité',
-      status: 'actif',
-      room: 'Entrée',
-      movementDetected: false,
-      lastMovement: '2024-04-05 10:35:22',
-      energyConsumption: 5,
-      lastMaintenance: '2024-03-25',
-      batteryLevel: 90
-    },
-    {
-      id: 5,
-      name: 'Station Météo Extérieure',
-      type: 'météo',
-      status: 'actif',
-      room: 'Extérieur',
-      temperature: 15,
-      humidity: 65,
-      windSpeed: 12,
-      precipitation: 0,
-      energyConsumption: 10,
-      lastMaintenance: '2024-03-10',
-      batteryLevel: 95
-    },
-    {
-      id: 6,
-      name: 'Caméra de Sécurité Jardin',
-      type: 'sécurité',
-      status: 'inactif',
-      room: 'Jardin',
-      recordingStatus: 'Arrêté',
-      motionSensitivity: 'Moyen',
-      energyConsumption: 0,
-      lastMaintenance: '2024-02-15',
-      batteryLevel: 60
-    },
-    {
-      id: 7,
-      name: 'Éclairage Salon Intelligent',
-      type: 'lumière',
-      status: 'actif',
-      room: 'Salon',
-      brightness: 70,
-      colorTemperature: 3000,
-      energyConsumption: 25,
-      lastMaintenance: '2024-03-30',
-      batteryLevel: 100
-    },
-    {
-      id: 8,
-      name: 'Détecteur de Fumée Cuisine',
-      type: 'sécurité',
-      status: 'actif',
-      room: 'Cuisine',
-      smokeDetected: false,
-      carbonMonoxideLevel: 0,
-      energyConsumption: 3,
-      lastMaintenance: '2024-03-20',
-      batteryLevel: 88
-    }
-  ]);
 
   // États pour les filtres et la recherche
   const [searchTerm, setSearchTerm] = useState('');
@@ -501,6 +419,14 @@ function ModuleVisualisation() {
       transition: 'all 0.3s ease'
     }
   };
+
+  if (loading) {
+    return <p>Chargement des appareils...</p>;
+  }
+
+  if (error) {
+    return <p>Erreur : {error}</p>;
+  }
 
   return (
     <div style={{

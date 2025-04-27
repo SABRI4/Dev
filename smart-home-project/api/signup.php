@@ -17,9 +17,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $role     = 'simple';
     $points   = 0;
 
-    $birthdate   = $_POST['birthdate'] ?? '0000-00-00';
-    $gender      = $_POST['gender'] ?? '';
-    $age         = (int)($_POST['age'] ?? 0);
+    $nom       = $_POST['nom'] ?? '';
+    $prenom    = $_POST['prenom'] ?? '';
+    $birthdate = $_POST['birthdate'] ?? '0000-00-00';
+    $gender    = $_POST['gender'] ?? '';
+    $age       = (int)($_POST['age'] ?? 0);
     $member_type = $_POST['member_type'] ?? 'inconnu';
 
     // URL publique par défaut
@@ -45,8 +47,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     // Requête avec PDO
     $sql = "INSERT INTO users 
-        (username, email, password, photo, role, points, birthdate, gender, age, member_type) 
-        VALUES (:username, :email, :password, :photo, :role, :points, :birthdate, :gender, :age, :member_type)";
+        (username, email, password, nom, prenom, photo, role, points, birthdate, gender, age, member_type) 
+        VALUES (:username, :email, :password, :nom, :prenom, :photo, :role, :points, :birthdate, :gender, :age, :member_type)";
 
     try {
         $stmt = $pdo->prepare($sql);
@@ -54,6 +56,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             ':username'    => $username,
             ':email'       => $email,
             ':password'    => $password,
+            ':nom'         => $nom,
+            ':prenom'      => $prenom,
             ':photo'       => $publicURL,
             ':role'        => $role,
             ':points'      => $points,

@@ -451,9 +451,12 @@ function ModuleGestion() {
       const response = await fetch("http://localhost:3020/plateforme/smart-home-project/api/request_delete.php", {
         method: "POST",
         credentials: "include",
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
         body: new URLSearchParams({
           item_type: selectedDevice.type,
-          item_id: selectedDevice.id
+          item_id: selectedDevice.id.toString() // Conversion en string pour être sûr
         })
       });
   

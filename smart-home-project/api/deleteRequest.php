@@ -29,8 +29,33 @@ if ($role !== 'admin') {
     exit;
 }
 
-$stmt = $pdo->prepare("SELECT * FROM delete_requests ORDER BY created_at DESC");
+// Modifier la requête pour joindre les tables et obtenir toutes les informations
+$stmt = $pdo->prepare("
+    SELECT 
+        dr.id,
+        dr.user_id,
+        dr.item_type,
+        dr.item_id,
+        dr.requested_at,
+        u.username,
+        u.nom as user_lastname,
+        u.prenom as user_firstname,
+        u.role as user_role,
+        u.niveau as user_level,
+        d.name as item_name,
+        d.room as item_room,
+        d.type as item_type,
+        d.status as item_status,
+        d.energyConsumption,
+        d.batteryLevel,
+        d.lastMaintenance
+    FROM delete_requests dr
+    JOIN users u ON dr.user_id = u.id
+    JOIN devices d ON dr.item_id = d.id
+    ORDER BY dr.created_at DESC
+");
+
 $stmt->execute();
-$requests = $stmt->fetchAll();
+$requests = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 echo json_encode(['status' => 'success', 'requests' => $requests]);
