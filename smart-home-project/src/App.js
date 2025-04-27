@@ -5,6 +5,8 @@ import AuthPage from './pages/Auth/AuthPage';
 import ModuleInformation from './pages/ModuleInformation/ModuleInformation';
 import ModuleGestion from './pages/ModuleGestion/ModuleGestion';
 import AdminDeleteRequests from './pages/Modulerequete/AdminDeleteRequests.jsx';
+import ModuleVisualisation from './pages/ModuleVisualisation/ModuleVisualisation';
+import ModuleAdministration from './pages/ModuleAdministration/ModuleAdministration';
 
 function App() {
   const storedUser = localStorage.getItem("user");
@@ -22,10 +24,27 @@ function App() {
         {/* Accessible SEULEMENT si connecté */}
         {user && (
           <>
-            <Route path="/module-gestion" element={<ModuleGestion />} />
-            {/* Accessible en plus si c'est un admin */}
-            {user.role === 'admin' && (
-              <Route path="/module-requête" element={<AdminDeleteRequests />} />
+            {/* Accessible aux utilisateurs simples (débutant ou intermédiaire) */}
+            {(user.role === 'simple' && (user.niveau === 'debutant' || user.niveau === 'intermediaire')) && (
+              <Route path="/module-visualisation" element={<ModuleVisualisation />} />
+            )}
+
+            {/* Accessible aux utilisateurs complexes (niveau avancé) */}
+            {(user.role === 'complexe' && user.niveau === 'avance') && (
+              <>
+                <Route path="/module-visualisation" element={<ModuleVisualisation />} />
+                <Route path="/module-gestion" element={<ModuleGestion />} />
+              </>
+            )}
+
+            {/* Accessible aux administrateurs (niveau expert) */}
+            {(user.role === 'admin' && user.niveau === 'expert') && (
+              <>
+                <Route path="/module-visualisation" element={<ModuleVisualisation />} />
+                <Route path="/module-gestion" element={<ModuleGestion />} />
+                <Route path="/module-administration" element={<ModuleAdministration />} />
+                <Route path="/module-requête" element={<AdminDeleteRequests />} />
+              </>
             )}
           </>
         )}

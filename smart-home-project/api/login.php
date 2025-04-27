@@ -25,7 +25,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $password = $data['password'];
 
     // Requête sécurisée avec PDO
-    $stmt = $pdo->prepare("SELECT id, username, email, password, photo, role, points FROM users WHERE email = ?");
+    $stmt = $pdo->prepare("SELECT id, username, email, password, niveau, photo, role, points FROM users WHERE email = ?");
     $stmt->execute([$email]);
     $user = $stmt->fetch();
 
@@ -37,6 +37,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             $_SESSION['photo']     = $user['photo'];
             $_SESSION['role']      = $user['role'];
             $_SESSION['points']    = $user['points'];
+            $_SESSION['niveau']    = $user['niveau'];
 
             echo json_encode([
                 'status' => 'success',
@@ -47,6 +48,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                     'email'    => $user['email'],
                     'photo'    => $user['photo'],
                     'role'     => $user['role'],
+                    'niveau'   => $user['niveau'],
                     'points'   => $user['points']
                 ]
             ]);

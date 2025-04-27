@@ -48,10 +48,18 @@ function HomePage() {
   const modules = [
     { name: "Module Information", description: "Accès aux informations générales", path: "/module-information" },
     ...(user ? [
-      { name: "Module Gestion", description: "Gestion des objets connectés", path: "/module-gestion" },
-      ...(user.role === "admin"
-        ? [{ name: "Module Requête", description: "Demandes de suppression", path: "/module-requête" }]
-        : [])
+      ...(((user.role === 'simple' && (user.niveau === 'debutant' || user.niveau === 'intermediaire')) || 
+           (user.role === 'complexe' && user.niveau === 'avance') || 
+           (user.role === 'admin' && user.niveau === 'expert')) ? 
+        [{ name: "Module Visualisation", description: "Visualisation des données", path: "/module-visualisation" }] : []),
+      ...((user.role === 'complexe' && user.niveau === 'avance') || 
+          (user.role === 'admin' && user.niveau === 'expert') ? 
+        [{ name: "Module Gestion", description: "Gestion des objets connectés", path: "/module-gestion" }] : []),
+      ...(user.role === 'admin' && user.niveau === 'expert' ? 
+        [
+          { name: "Module Administration", description: "Administration système", path: "/module-administration" },
+          { name: "Module Requête", description: "Demandes de suppression", path: "/module-requête" }
+        ] : [])
     ] : [])
   ];
   

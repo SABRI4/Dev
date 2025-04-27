@@ -88,11 +88,11 @@ CREATE TABLE IF NOT EXISTS `users` (
   `password` varchar(255) COLLATE utf8mb4_general_ci NOT NULL,
   `email` varchar(100) COLLATE utf8mb4_general_ci NOT NULL,
   `photo` varchar(255) COLLATE utf8mb4_general_ci NOT NULL,
-  `role` enum('visiteur','simple','complexe','admin') COLLATE utf8mb4_general_ci DEFAULT 'visiteur',
+  `role` enum('visiteur','simple','complexe','admin') COLLATE utf8mb4_general_ci DEFAULT 'simple',
   `points` int DEFAULT '0',
-  `niveau` int DEFAULT '0',
+  `niveau` enum('debutant','intermediaire','avance','expert') COLLATE utf8mb4_general_ci DEFAULT 'debutant',
   `birthdate` date DEFAULT NULL,
-  `gender` enum('M','F','Autre') COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `gender` enum('M','F','Autre','PreferePasDire') COLLATE utf8mb4_general_ci DEFAULT NULL,
   `age` int DEFAULT NULL,
   `member_type` varchar(50) COLLATE utf8mb4_general_ci DEFAULT NULL,
   PRIMARY KEY (`id`),
@@ -104,8 +104,8 @@ CREATE TABLE IF NOT EXISTS `users` (
 --
 
 INSERT INTO `users` (`id`, `username`, `password`, `email`, `photo`, `role`, `points`, `niveau`, `birthdate`, `gender`, `age`, `member_type`) VALUES
-(3, 'Admin', '$2y$10$unIL4WquuCRDXcnJGtJU/OYNfkj84ki781lZvzWzxq5W5EwZedpWa', 'comptedepense205@gmail.com', 'http://localhost:3020/plateforme/smart-home-project/api/uploads/avatar.jpg', 'admin', 0, 0, '2025-04-10', '', 50, 'grandparent'),
-(7, 'admin123', '$2y$10$lxS/RfRyYClQfTX6ba4tuOyQjVh957W1GsfXf9E5nVNlOunBSq7Py', 'younesysabri53@gmail.com', 'http://localhost:3020/plateforme/smart-home-project/api/uploads/avatar.jpg', 'simple', 0, 0, '0000-00-00', '', 0, '');
+(3, 'Admin', '$2y$10$unIL4WquuCRDXcnJGtJU/OYNfkj84ki781lZvzWzxq5W5EwZedpWa', 'comptedepense205@gmail.com', 'http://localhost:3020/plateforme/smart-home-project/api/uploads/avatar.jpg', 'admin', 0, 'expert', '2025-04-10', '', 50, 'grandparent'),
+(7, 'admin123', '$2y$10$lxS/RfRyYClQfTX6ba4tuOyQjVh957W1GsfXf9E5nVNlOunBSq7Py', 'younesysabri53@gmail.com', 'http://localhost:3020/plateforme/smart-home-project/api/uploads/avatar.jpg', 'simple', 0, 'debutant', '0000-00-00', '', 0, '');
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
