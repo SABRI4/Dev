@@ -88,8 +88,6 @@ function ModuleInformation() {
     try {
       const response = await fetch('http://localhost:3020/plateforme/smart-home-project/api/device.php', { credentials: 'include' });
       const data = await response.json();
-  
-      // ➔ On s'occupe UNIQUEMENT des devices ici
       if (Array.isArray(data.devices)) {
         const devicesWithIcons = data.devices.map(device => ({
           ...device,

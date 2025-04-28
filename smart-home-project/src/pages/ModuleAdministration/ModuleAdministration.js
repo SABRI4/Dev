@@ -3,9 +3,6 @@ import { Link, useNavigate } from 'react-router-dom';
 import logoImage from '../../Pictures/cyhome-logo.png';
 import cytechLogo from '../../Pictures/cytech-logo.png';
 import backgroundImage from '../../Pictures/kitchen-background.jpg';
-import aliceImage from '../../Pictures/Alice.png';
-import jeanImage from '../../Pictures/Jean.png';
-import claireImage from '../../Pictures/Claire.png';
 
 // Importation pour la génération de PDF
 import { jsPDF } from 'jspdf';
@@ -14,7 +11,29 @@ import autoTable from 'jspdf-autotable';
 const ModuleAdministration = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
+  const API_URL = '  http://localhost:3020/Plateforme/smart-home-project/api/User-manager.php';
+
+  const [users, setUsers] = useState([]);                 // <- NEW
+  const [connectedDevices, setConnectedDevices] = useState([]); // <- NEW
+  const initialNewUserState = {
+    username: '',   
+    password: '',   
+    nom: '', prenom: '',
+    email: '',
+    photoFile: null,        // on change plus bas
+    role: '',
+    points: 0,
+    niveau: '',
+    birthdate: '',
+    gender: '',
+    age: null
+  };
+  
+  const [newUser,   setNewUser]   = useState(initialNewUserState);
+  const [loadingUsers, setLoadingUsers] = useState(true);
+  const [errorUsers, setErrorUsers]     = useState(null);
   const [activeUser, setActiveUser] = useState(null);
+  const [deleteRequests, setDeleteRequests] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [activeModal, setActiveModal] = useState(null);
   const [isNavigating, setIsNavigating] = useState(false);
@@ -102,6 +121,8 @@ const ModuleAdministration = () => {
     boxShadow: hoveredCard === cardId ? '0 6px 12px rgba(0,0,0,0.3)' : '0 4px 6px rgba(0,0,0,0.2)'
   });
 
+  
+
   const getButtonStyle = (buttonId) => ({
     backgroundColor: hoveredButton === buttonId ? 'rgba(211, 84, 0, 0.4)' : 'rgba(211, 84, 0, 0.2)',
     color: '#f5f5f5',
@@ -133,46 +154,27 @@ const ModuleAdministration = () => {
     boxShadow: focusedSearch ? '0 0 0 2px rgba(230, 126, 34, 0.2)' : 'none'
   });
 
-  const [users, setUsers] = useState([
-  {
-        name: 'Alice Dupont',
-        id: 1,
-        email: 'alice@example.com',
-        age: 29,
-        gender: 'Femme',
-        role: 'Administrateur',
-        memberType: 'Résident',
-        points: 150,
-      photo: aliceImage
-      },
-      {
-        name: 'Jean Martin',
-        id: 2,
-        email: 'jean@example.com',
-        age: 34,
-        gender: 'Homme',
-        role: 'Simple',
-        memberType: 'Invité',
-        points: 85,
-      photo: jeanImage
-      },
-      {
-        name: 'Claire Durand',
-        id: 3,
-        email: 'claire@example.com',
-        age: 42,
-        gender: 'Femme',
-        role: 'Complexe',
-        memberType: 'Résident',
-        points: 210,
-      photo: claireImage
-      }
-    ]);
+
   const [theme, setTheme] = useState('Clair');
 
   useEffect(() => {
     document.body.className = theme === 'Clair' ? 'light-theme' : 'dark-theme';
   }, [theme]);
+
+  useEffect(() => {
+    const fetchDeleteRequests = async () => {
+      try {
+        const response = await fetch('http://localhost:3020/Plateforme/smart-home-project/api/User-manager.php');
+        const data = await response.json();
+        setDeleteRequests(data);
+      } catch (error) {
+        console.error('Erreur lors de la récupération des demandes de suppression', error);
+      }
+    };
+  
+    fetchDeleteRequests();
+  }, []);
+  
   const [newDevice, setNewDevice] = useState({
     name: '',
     type: '',
@@ -231,106 +233,6 @@ const ModuleAdministration = () => {
     )
   };
   const [selectedDevice, setSelectedDevice] = useState(null);
-  const [connectedDevices, setConnectedDevices] = useState([
-      {
-        id: 1,
-        name: 'Thermostat Salon',
-        type: 'thermostat',
-        status: 'actif',
-        room: 'Salon',
-        temperature: 22,
-        targetTemperature: 23,
-        energyConsumption: 45,
-        lastMaintenance: '2024-03-15',
-        batteryLevel: 85
-      },
-      {
-        id: 2,
-        name: 'Climatiseur Chambre',
-        type: 'climatiseur',
-        status: 'inactif',
-        room: 'Chambre Principale',
-        currentMode: 'Veille',
-        temperature: 18,
-        energyConsumption: 0,
-        lastMaintenance: '2024-02-20',
-        batteryLevel: 100
-      },
-      {
-        id: 3,
-        name: 'Volets Automatiques Salon',
-        type: 'volets',
-        status: 'actif',
-        room: 'Salon',
-        openPercentage: 50,
-        currentPosition: 'Mi-ouverts',
-        energyConsumption: 15,
-        lastMaintenance: '2024-04-01',
-        batteryLevel: 75
-      },
-      {
-        id: 4,
-        name: 'Capteur de Présence Entrée',
-        type: 'sécurité',
-        status: 'actif',
-        room: 'Entrée',
-        movementDetected: false,
-        lastMovement: '2024-04-05 10:35:22',
-        energyConsumption: 5,
-        lastMaintenance: '2024-03-25',
-        batteryLevel: 90
-      },
-      {
-        id: 5,
-        name: 'Station Météo Extérieure',
-        type: 'météo',
-        status: 'actif',
-        room: 'Extérieur',
-        temperature: 15,
-        humidity: 65,
-        windSpeed: 12,
-        precipitation: 0,
-        energyConsumption: 10,
-        lastMaintenance: '2024-03-10',
-        batteryLevel: 95
-      },
-      {
-        id: 6,
-        name: 'Caméra de Sécurité Jardin',
-        type: 'sécurité',
-        status: 'inactif',
-        room: 'Jardin',
-        recordingStatus: 'Arrêté',
-        motionSensitivity: 'Moyen',
-        energyConsumption: 0,
-        lastMaintenance: '2024-02-15',
-        batteryLevel: 60
-      },
-      {
-        id: 7,
-        name: 'Éclairage Salon Intelligent',
-        type: 'lumière',
-        status: 'actif',
-        room: 'Salon',
-        brightness: 70,
-        colorTemperature: 3000,
-        energyConsumption: 25,
-        lastMaintenance: '2024-03-30',
-        batteryLevel: 100
-      },
-      {
-        id: 8,
-        name: 'Détecteur de Fumée Cuisine',
-        type: 'sécurité',
-        status: 'actif',
-        room: 'Cuisine',
-        smokeDetected: false,
-        carbonMonoxideLevel: 0,
-        energyConsumption: 3,
-        lastMaintenance: '2024-03-20',
-        batteryLevel: 88
-      }
-  ]);
 
   // Fonction pour ouvrir les détails d'un appareil
     const handleDeviceDetails = (device) => {
@@ -355,6 +257,23 @@ const ModuleAdministration = () => {
     }
   }, []);
 
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res  = await fetch(API_URL, { credentials: 'include' });
+        const json = await res.json();            // { status:'success', users:[…] }
+        if (json.status !== 'success') throw new Error(json.message);
+        setUsers(json.users);
+      } catch (err) {
+        setErrorUsers(err.message);
+      } finally {
+        setLoadingUsers(false);
+      }
+    })();
+  }, []);
+  
+
   const handleLogout = () => {
     localStorage.removeItem('user');
     navigate('/auth');
@@ -368,55 +287,69 @@ const ModuleAdministration = () => {
     setActiveModal('userDetails');
   };
 
-  const handleDeleteUser = async () => {
-    if (!selectedUser) return;
-    
+  const fetchUsers = async () => {
     try {
-      const response = await fetch(`/api/users/${selectedUser.id}`, {
-        method: 'DELETE',
-      });
-      
-      if (response.ok) {
-        setUsers(users.filter(user => user.id !== selectedUser.id));
-        setActiveModal(null);
-        setSelectedUser(null);
-      } else {
-        console.error('Erreur lors de la suppression de l\'utilisateur');
-      }
-    } catch (error) {
-      console.error('Erreur:', error);
+      const res  = await fetch(API_URL, { credentials: 'include' });
+      const json = await res.json();
+      if (json.status !== 'success') throw new Error(json.message);
+      setUsers(json.users);
+    } catch (err) {
+      setErrorUsers(err.message);
+    } finally {
+      setLoadingUsers(false);
     }
   };
+  
+
+  const handleDeleteUser = async () => {
+    if (!selectedUser) return;
+    if (!window.confirm('Supprimer définitivement ?')) return;
+  
+    try {
+      const res = await fetch(API_URL, {
+        method : 'DELETE',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body   : `id=${selectedUser.id}`,
+        credentials: 'include'
+      });
+      const json = await res.json();
+      if (json.status !== 'success') throw new Error(json.message);
+  
+      setActiveModal(null);
+      fetchUsers();
+    } catch (err) {
+      alert(err.message);
+    }
+  };
+  
 
   const filteredUsers = users.filter(user =>
       user.name.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-  const handleSaveEdit = async () => {
-    if (!selectedUser) return;
+    const handleSaveEdit = async () => {
+      if (!selectedUser) return;
+      try {
+        const res = await fetch(API_URL, {
+          method : 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body   : JSON.stringify({
+            id       : selectedUser.id,
+            username : selectedUser.name,
+            role     : selectedUser.role
+          }),
+          credentials: 'include'
+        });
+        const json = await res.json();
+        if (json.status !== 'success') throw new Error(json.message);
     
-    try {
-      const response = await fetch(`/api/users/${selectedUser.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(selectedUser),
-      });
-      
-      if (response.ok) {
-        setUsers(users.map(user => 
-          user.id === selectedUser.id ? selectedUser : user
-        ));
         setActiveModal(null);
-        setSelectedUser(null);
-      } else {
-        console.error('Erreur lors de la mise à jour de l\'utilisateur');
+        fetchUsers();
+      } catch (err) {
+        alert(err.message);
       }
-    } catch (error) {
-      console.error('Erreur:', error);
-    }
-  };
+    };
+    
 
   const statusOptions = ['actif', 'inactif'];
     const handleAddDevice = () => {
@@ -865,43 +798,74 @@ const ModuleAdministration = () => {
     )}
   const addHistory = (entry) => setHistory([...history, `${new Date().toLocaleString()} - ${entry}`]);
 
-  const [newUser, setNewUser] = useState({
-    name: '',
-    email: '',
-    age: '',
-    gender: '',
-    role: '',
-    memberType: '',
-    points: 0,
-    photo: ''
-  });
-
-  const handleAddUser = () => {
-    if (newUser.name && newUser.email) {
-      const userToAdd = {
-        ...newUser,
-        id: Date.now(),
-        points: parseInt(newUser.points) || 0,
-        age: parseInt(newUser.age) || 0
-      };
-      setUsers([...users, userToAdd]);
-      setShowAddUserForm(false);
-      setNewUser({
-        name: '',
-        email: '',
-        age: '',
-        gender: '',
-        role: '',
-        memberType: '',
-        points: 0,
-        photo: ''
+  const handleAddUser = async () => {
+    const {
+      username, password, email,
+      role, points, niveau, birthdate, gender, age, photoFile
+    } = newUser;
+  
+    if (
+      [username, password, email, role, niveau, birthdate, gender].some(v => !v) ||
+      points == null || age == null
+    ) {
+      return alert('Merci de remplir tous les champs !');
+    }
+  
+    // on construit le FormData
+    const formData = new FormData();
+    formData.append('username',  username);
+    formData.append('password',  password);
+    formData.append('email',     email);
+    formData.append('role',      role);
+    formData.append('points',    points);
+    formData.append('niveau',    niveau);
+    formData.append('birthdate', birthdate);
+    formData.append('gender',    gender);
+    formData.append('age',       age);
+  
+    
+    if (photoFile instanceof File) {
+      formData.append('photo', photoFile);
+    }
+  
+    try {
+      const res = await fetch(API_URL, {
+        method: 'POST',
+        credentials: 'include',
+        body: formData,      
       });
+      const json = await res.json();
+      if (json.status !== 'success') throw new Error(json.message);
+  
+      fetchUsers();
+      setShowAddUserForm(false);
+      setNewUser(initialNewUserState);
+    } catch (err) {
+      alert(err.message);
     }
   };
+  
+
 
   const renderModalContent = (key) => {
     switch (key) {
       case 'users':
+        if (loadingUsers) {
+          return (
+            <p style={{ color: '#fff', textAlign: 'center', marginTop: '20vh' }}>
+              Chargement des utilisateurs…
+            </p>
+          );
+        }
+        
+        if (errorUsers) {
+          return (
+            <p style={{ color: 'red', textAlign: 'center', marginTop: '20vh' }}>
+              Erreur : {errorUsers}
+            </p>
+          );
+        }
+        
         return (
             <div style={styles.modal}>
             <div style={styles.modalContent}>
@@ -963,12 +927,6 @@ const ModuleAdministration = () => {
                         transition: 'all 0.3s ease'
                       }}>
                         Rôle: {user.role}
-                      </p>
-                      <p style={{
-                        transform: hoveredCard === `user-${index}` ? 'scale(1.02)' : 'none',
-                        transition: 'all 0.3s ease'
-                      }}>
-                        Type: {user.memberType}
                       </p>
                     </div>
                     </div>
@@ -1503,7 +1461,7 @@ const ModuleAdministration = () => {
               {/* Photo de l'utilisateur */}
               <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '2rem' }}>
                 <img
-                  src={selectedUser.photo || aliceImage}
+                  src={selectedUser.photo}
                   alt={`Photo de ${selectedUser.name}`}
                   style={{
                     width: '150px',
@@ -1556,12 +1514,6 @@ const ModuleAdministration = () => {
                   <label style={{...styles.formLabel, color: '#000000'}}>Rôle</label>
                   <p style={{margin: '0.5rem 0', color: '#000000', padding: '0.5rem', backgroundColor: '#f8f9fa', borderRadius: '4px'}}>
                     {selectedUser.role}
-                  </p>
-                </div>
-                <div style={styles.formGroup}>
-                  <label style={{...styles.formLabel, color: '#000000'}}>Type de membre</label>
-                  <p style={{margin: '0.5rem 0', color: '#000000', padding: '0.5rem', backgroundColor: '#f8f9fa', borderRadius: '4px'}}>
-                    {selectedUser.memberType}
                   </p>
                 </div>
                 <div style={styles.formGroup}>
@@ -1759,18 +1711,6 @@ const ModuleAdministration = () => {
                   </select>
                 </div>
                 <div style={styles.formGroup}>
-                  <label style={{...styles.formLabel, color: '#000000'}}>Type de membre</label>
-                  <select
-                    value={selectedUser.memberType}
-                    onChange={(e) => setSelectedUser({...selectedUser, memberType: e.target.value})}
-                    style={{...styles.formInput, color: '#000000'}}
-                  >
-                    <option value="Standard">Standard</option>
-                    <option value="Premium">Premium</option>
-                    <option value="VIP">VIP</option>
-                  </select>
-                </div>
-                <div style={styles.formGroup}>
                   <label style={{...styles.formLabel, color: '#000000'}}>Points</label>
                   <input
                     type="number"
@@ -1914,8 +1854,6 @@ const ModuleAdministration = () => {
       ['Total utilisateurs', users.length],
       ['Administrateurs', users.filter(u => u.role === 'admin').length],
       ['Utilisateurs standards', users.filter(u => u.role === 'user').length],
-      ['Membres Premium', users.filter(u => u.memberType === 'Premium').length],
-      ['Membres VIP', users.filter(u => u.memberType === 'VIP').length]
     ];
     
     autoTable(doc, {
@@ -1993,7 +1931,6 @@ const ModuleAdministration = () => {
       user.name,
       user.email,
       user.role,
-      user.memberType,
       user.points
     ]);
     
@@ -2325,10 +2262,7 @@ const ModuleAdministration = () => {
                 <span style={styles.userModalLabel}>Rôle :</span>
                 <span style={styles.userModalValue}>{selectedUser.role}</span>
               </div>
-              <div style={styles.userModalInfo}>
-                <span style={styles.userModalLabel}>Type de membre :</span>
-                <span style={styles.userModalValue}>{selectedUser.memberType}</span>
-              </div>
+             
               <div style={styles.userModalInfo}>
                 <span style={styles.userModalLabel}>Points :</span>
                 <span style={styles.userModalValue}>{selectedUser.points}</span>
@@ -2387,139 +2321,199 @@ const ModuleAdministration = () => {
         </>
       )}
       {showAddUserForm && (
-        <div style={styles.modalOverlay} onClick={() => setShowAddUserForm(false)}>
-          <div style={styles.addUserModal} onClick={(e) => e.stopPropagation()}>
-            <h2 style={{ fontSize: '1.8rem', marginBottom: '1rem', color: '#D35400' }}>Ajouter un utilisateur</h2>
-            
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', width: '100%' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
-                <label style={{ fontWeight: 'bold', color: '#333', fontSize: '0.9rem' }}>Photo de profil</label>
-                <input
-                  type="text"
-                  placeholder="URL de la photo"
-                  value={newUser.photo}
-                  onChange={(e) => setNewUser({ ...newUser, photo: e.target.value })}
-                  style={styles.formInput}
-                />
-              </div>
+  <div style={styles.modalOverlay} onClick={() => setShowAddUserForm(false)}>
+    <div style={styles.addUserModal} onClick={e => e.stopPropagation()}>
+      <h2 style={{ fontSize: '1.8rem', marginBottom: '1rem', color: '#D35400' }}>
+        Ajouter un utilisateur
+      </h2>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
-                <label style={{ fontWeight: 'bold', color: '#333', fontSize: '0.9rem' }}>Nom complet</label>
-                <input
-                  type="text"
-                  placeholder="Nom complet"
-                  value={newUser.name}
-                  onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
-                  style={styles.formInput}
-                />
-            </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
-                <label style={{ fontWeight: 'bold', color: '#333', fontSize: '0.9rem' }}>Email</label>
-                <input
-                  type="email"
-                  placeholder="Email"
-                  value={newUser.email}
-                  onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
-                  style={styles.formInput}
-                />
-          </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
-                <label style={{ fontWeight: 'bold', color: '#333', fontSize: '0.9rem' }}>Âge</label>
-                <input
-                  type="number"
-                  placeholder="Âge"
-                  value={newUser.age}
-                  onChange={(e) => setNewUser({ ...newUser, age: e.target.value })}
-                  style={styles.formInput}
-                />
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
-                <label style={{ fontWeight: 'bold', color: '#333', fontSize: '0.9rem' }}>Genre</label>
-                <select
-                  value={newUser.gender}
-                  onChange={(e) => setNewUser({ ...newUser, gender: e.target.value })}
-                  style={styles.formInput}
-                >
-                  <option value="">Sélectionner le genre</option>
-                  <option value="Homme">Homme</option>
-                  <option value="Femme">Femme</option>
-                  <option value="Autre">Autre</option>
-                </select>
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
-                <label style={{ fontWeight: 'bold', color: '#333', fontSize: '0.9rem' }}>Rôle</label>
-                <select
-                  value={newUser.role}
-                  onChange={(e) => setNewUser({ ...newUser, role: e.target.value })}
-                  style={styles.formInput}
-                >
-                  <option value="">Sélectionner le rôle</option>
-                  <option value="Administrateur">Administrateur</option>
-                  <option value="Simple">Simple</option>
-                  <option value="Complexe">Complexe</option>
-                </select>
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
-                <label style={{ fontWeight: 'bold', color: '#333', fontSize: '0.9rem' }}>Type de membre</label>
-                <select
-                  value={newUser.memberType}
-                  onChange={(e) => setNewUser({ ...newUser, memberType: e.target.value })}
-                  style={styles.formInput}
-                >
-                  <option value="">Sélectionner le type</option>
-                  <option value="Résident">Résident</option>
-                  <option value="Invité">Invité</option>
-                </select>
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
-                <label style={{ fontWeight: 'bold', color: '#333', fontSize: '0.9rem' }}>Points</label>
-                <input
-                  type="number"
-                  placeholder="Points"
-                  value={newUser.points}
-                  onChange={(e) => setNewUser({ ...newUser, points: e.target.value })}
-                  style={styles.formInput}
-                />
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', gap: '0.8rem', marginTop: '1.5rem' }}>
-              <button
-                style={{
-                  ...styles.button,
-                  backgroundColor: '#D35400',
-                  color: 'white',
-                  flex: 1,
-                  padding: '0.5rem 1rem',
-                  fontSize: '1rem'
-                }}
-                onClick={handleAddUser}
-              >
-                Ajouter
-              </button>
-              <button
-                style={{
-                  ...styles.button,
-                  backgroundColor: '#999',
-                  color: 'white',
-                  flex: 1,
-                  padding: '0.5rem 1rem',
-                  fontSize: '1rem'
-                }}
-                onClick={() => setShowAddUserForm(false)}
-              >
-                Annuler
-              </button>
-            </div>
-          </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', width: '100%' }}>
+        {/* Photo de profil */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+          <label style={{ fontWeight: 'bold', color: '#333', fontSize: '0.9rem' }}>
+            Photo de profil
+          </label>
+          <input
+            type="file"
+            accept="image/*"
+            onChange={e =>
+              setNewUser({
+                ...newUser,
+                photoFile: e.target.files[0]
+              })
+            }
+          />
         </div>
-      )}
+
+        {/* Nom d’utilisateur */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+          <label style={{ fontWeight: 'bold', color: '#333', fontSize: '0.9rem' }}>
+            Nom d’utilisateur
+          </label>
+          <input
+            type="text"
+            placeholder="Nom d’utilisateur"
+            value={newUser.username}
+            onChange={e => setNewUser({ ...newUser, username: e.target.value })}
+            style={styles.formInput}
+          />
+        </div>
+
+        {/* Email */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+          <label style={{ fontWeight: 'bold', color: '#333', fontSize: '0.9rem' }}>
+            Email
+          </label>
+          <input
+            type="email"
+            placeholder="Email"
+            value={newUser.email}
+            onChange={e => setNewUser({ ...newUser, email: e.target.value })}
+            style={styles.formInput}
+          />
+        </div>
+
+        {/* Mot de passe */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+          <label style={{ fontWeight: 'bold', color: '#333', fontSize: '0.9rem' }}>
+            Mot de passe
+          </label>
+          <input
+            type="password"
+            placeholder="Mot de passe"
+            value={newUser.password}
+            onChange={e => setNewUser({ ...newUser, password: e.target.value })}
+            style={styles.formInput}
+          />
+        </div>
+
+        {/* Âge */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+          <label style={{ fontWeight: 'bold', color: '#333', fontSize: '0.9rem' }}>
+            Âge
+          </label>
+          <input
+            type="number"
+            placeholder="Âge"
+            value={newUser.age}
+            onChange={e => setNewUser({ ...newUser, age: e.target.value })}
+            style={styles.formInput}
+          />
+        </div>
+
+        {/* Genre */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+          <label style={{ fontWeight: 'bold', color: '#333', fontSize: '0.9rem' }}>
+            Genre
+          </label>
+          <select
+            value={newUser.gender}
+            onChange={e => setNewUser({ ...newUser, gender: e.target.value })}
+            style={styles.formInput}
+          >
+            <option value="">Sélectionner le genre</option>
+            <option value="Homme">Homme</option>
+            <option value="Femme">Femme</option>
+            <option value="Autre">Autre</option>
+          </select>
+        </div>
+
+        {/* Rôle */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+          <label style={{ fontWeight: 'bold', color: '#333', fontSize: '0.9rem' }}>
+            Rôle
+          </label>
+          <select
+            value={newUser.role}
+            onChange={e => setNewUser({ ...newUser, role: e.target.value })}
+            style={styles.formInput}
+          >
+            <option value="">Sélectionner le rôle</option>
+            <option value="visiteur">Visiteur</option>
+            <option value="simple">Simple</option>
+            <option value="complexe">Complexe</option>
+            <option value="admin">Administrateur</option>
+          </select>
+        </div>
+
+        {/* Points */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+          <label style={{ fontWeight: 'bold', color: '#333', fontSize: '0.9rem' }}>
+            Points
+          </label>
+          <input
+            type="number"
+            placeholder="Points"
+            value={newUser.points}
+            onChange={e => setNewUser({ ...newUser, points: e.target.value })}
+            style={styles.formInput}
+          />
+        </div>
+
+        {/* Niveau */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+          <label style={{ fontWeight: 'bold', color: '#333', fontSize: '0.9rem' }}>
+            Niveau
+          </label>
+          <select
+            value={newUser.niveau}
+            onChange={e => setNewUser({ ...newUser, niveau: e.target.value })}
+            style={styles.formInput}
+          >
+            <option value="">Sélectionner le niveau</option>
+            <option value="debutant">Débutant</option>
+            <option value="intermediaire">Intermédiaire</option>
+            <option value="avance">Avancé</option>
+            <option value="expert">Expert</option>
+          </select>
+        </div>
+
+        {/* Date de naissance */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+          <label style={{ fontWeight: 'bold', color: '#333', fontSize: '0.9rem' }}>
+            Date de naissance
+          </label>
+          <input
+            type="date"
+            value={newUser.birthdate}
+            onChange={e => setNewUser({ ...newUser, birthdate: e.target.value })}
+            style={styles.formInput}
+          />
+        </div>
+      </div>
+
+      <div style={{ display: 'flex', gap: '0.8rem', marginTop: '1.5rem' }}>
+        <button
+          style={{
+            ...styles.button,
+            backgroundColor: '#D35400',
+            color: 'white',
+            flex: 1,
+            padding: '0.5rem 1rem',
+            fontSize: '1rem'
+          }}
+          onClick={handleAddUser}
+        >
+          Ajouter
+        </button>
+        <button
+          style={{
+            ...styles.button,
+            backgroundColor: '#999',
+            color: 'white',
+            flex: 1,
+            padding: '0.5rem 1rem',
+            fontSize: '1rem'
+          }}
+          onClick={() => setShowAddUserForm(false)}
+        >
+          Annuler
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
       {showAddDeviceForm && (
         <div style={styles.modalOverlay} onClick={() => setShowAddDeviceForm(false)}>
           <div style={styles.addUserModal} onClick={(e) => e.stopPropagation()}>
