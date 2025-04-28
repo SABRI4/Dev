@@ -368,8 +368,47 @@ function ModuleGestion() {
   );
 
   // Fonction pour ouvrir les détails d'un appareil
-  const handleDeviceDetails = (device) => {
-    setSelectedDevice(device);
+   const handleDeviceDetails = (device) => {
+    // Création d'un objet avec les propriétés de base et spécifiques au type
+    const deviceWithDetails = {
+      ...device
+    };
+    
+    // Ajout de propriétés spécifiques selon le type d'appareil
+    switch(device.type) {
+      case 'thermostat':
+        deviceWithDetails.temperature = device.temperature || 20;
+        deviceWithDetails.targetTemperature = device.targetTemperature || 22;
+        break;
+      case 'climatiseur':
+        deviceWithDetails.temperature = device.temperature || 20;
+        deviceWithDetails.currentMode = device.currentMode || 'Veille';
+        break;
+      case 'volets':
+        deviceWithDetails.openPercentage = device.openPercentage || 0;
+        deviceWithDetails.currentPosition = device.currentPosition || 'Fermés';
+        break;
+      case 'lumière':
+        deviceWithDetails.brightness = device.brightness || 50;
+        deviceWithDetails.colorTemperature = device.colorTemperature || 3000;
+        break;
+      case 'sécurité':
+        deviceWithDetails.motionSensitivity = device.motionSensitivity || 'Moyen';
+        deviceWithDetails.movementDetected = device.movementDetected || false;
+        break;
+      case 'météo':
+        deviceWithDetails.temperature = device.temperature || 20;
+        if (device.name.toLowerCase().includes('station')) {
+          deviceWithDetails.humidity = device.humidity || 50;
+          deviceWithDetails.windSpeed = device.windSpeed || 0;
+          deviceWithDetails.precipitation = device.precipitation || 0;
+        }
+        break;
+      default:
+        break;
+    }
+    
+    setSelectedDevice(deviceWithDetails);
   };
 
   // Fonction pour gérer le changement des champs du nouvel appareil
@@ -392,18 +431,82 @@ function ModuleGestion() {
   };
   
   const handleAddDevice = async () => {
+    // Validation des champs obligatoires
     const errors = validateDeviceFields(newDevice);
-    setValidationErrors(errors);
-  
     if (Object.keys(errors).length > 0) {
+      setValidationErrors(errors);
       return;
     }
-  
-    await addDevice(newDevice);
-    await fetchDevices(); // recharge
-    setNewDevice({ /* reset */ });
-    setValidationErrors({});
-    setShowAddModal(false);
+
+    // On crée un objet avec les champs de base pour l'envoi au backend
+    const deviceToAdd = {
+      name: newDevice.name,
+      type: newDevice.type,
+      status: newDevice.status,
+      room: newDevice.room,
+      energyConsumption: newDevice.energyConsumption,
+      lastMaintenance: newDevice.lastMaintenance,
+      batteryLevel: newDevice.batteryLevel
+    };
+
+    try {
+      const response = await addDevice(deviceToAdd);
+      if (response.status === 'success') {
+        await fetchDevices(); // recharge
+        
+        // On garde les champs spécifiques dans l'interface
+        const deviceWithDetails = {
+          ...deviceToAdd,
+          // On ajoute les champs spécifiques selon le type
+          ...(newDevice.type === 'thermostat' && {
+            temperature: 20,
+            targetTemperature: 22
+          }),
+          ...(newDevice.type === 'climatiseur' && {
+            temperature: 20,
+            currentMode: 'Veille'
+          }),
+          ...(newDevice.type === 'volets' && {
+            openPercentage: 0,
+            currentPosition: 'Fermés'
+          }),
+          ...(newDevice.type === 'lumière' && {
+            brightness: 50,
+            colorTemperature: 3000
+          }),
+          ...(newDevice.type === 'sécurité' && {
+            motionSensitivity: 'Moyen',
+            movementDetected: false
+          }),
+          ...(newDevice.type === 'météo' && {
+            temperature: 20,
+            ...(newDevice.name.toLowerCase().includes('station') && {
+              humidity: 50,
+              windSpeed: 0,
+              precipitation: 0
+            })
+          })
+        };
+        
+        setSelectedDevice(deviceWithDetails);
+        setNewDevice({
+          name: '',
+          type: 'thermostat',
+          status: 'actif',
+          room: '',
+          energyConsumption: 0,
+          lastMaintenance: new Date().toISOString().split('T')[0],
+          batteryLevel: 100
+        });
+        setValidationErrors({});
+        setShowAddModal(false);
+      } else {
+        alert('Erreur lors de l\'ajout de l\'appareil : ' + response.message);
+      }
+    } catch (error) {
+      console.error('Erreur lors de l\'ajout de l\'appareil :', error);
+      alert('Une erreur est survenue lors de l\'ajout de l\'appareil');
+    }
   };
   
   
@@ -442,9 +545,66 @@ function ModuleGestion() {
   };
   
   const handleSaveDeviceChanges = async () => {
-    await updateDevice(deviceToEdit, deviceToEdit.id);
-    await fetchDevices(); // recharge
-    setShowConfigModal(false);
+    // On crée un objet avec les champs de base modifiés depuis deviceToEdit
+    const deviceToUpdate = {
+      name: deviceToEdit.name,
+      type: deviceToEdit.type,
+      status: deviceToEdit.status,
+      room: deviceToEdit.room,
+      energyConsumption: deviceToEdit.energyConsumption,
+      lastMaintenance: deviceToEdit.lastMaintenance,
+      batteryLevel: deviceToEdit.batteryLevel
+    };
+
+    try {
+      const response = await updateDevice(deviceToUpdate, selectedDevice.id);
+      if (response.status === 'success') {
+        await fetchDevices();
+        
+        // On garde les champs spécifiques dans l'interface
+        const updatedDevice = {
+          ...deviceToUpdate,
+          id: selectedDevice.id,
+          // On ajoute les champs spécifiques selon le type
+          ...(deviceToEdit.type === 'thermostat' && {
+            temperature: selectedDevice.temperature || 20,
+            targetTemperature: selectedDevice.targetTemperature || 22
+          }),
+          ...(deviceToEdit.type === 'climatiseur' && {
+            temperature: selectedDevice.temperature || 20,
+            currentMode: selectedDevice.currentMode || 'Veille'
+          }),
+          ...(deviceToEdit.type === 'volets' && {
+            openPercentage: selectedDevice.openPercentage || 0,
+            currentPosition: selectedDevice.currentPosition || 'Fermés'
+          }),
+          ...(deviceToEdit.type === 'lumière' && {
+            brightness: selectedDevice.brightness || 50,
+            colorTemperature: selectedDevice.colorTemperature || 3000
+          }),
+          ...(deviceToEdit.type === 'sécurité' && {
+            motionSensitivity: selectedDevice.motionSensitivity || 'Moyen',
+            movementDetected: selectedDevice.movementDetected || false
+          }),
+          ...(deviceToEdit.type === 'météo' && {
+            temperature: selectedDevice.temperature || 20,
+            ...(deviceToEdit.name.toLowerCase().includes('station') && {
+              humidity: selectedDevice.humidity || 50,
+              windSpeed: selectedDevice.windSpeed || 0,
+              precipitation: selectedDevice.precipitation || 0
+            })
+          })
+        };
+        
+        setSelectedDevice(updatedDevice);
+        setShowConfigModal(false);
+      } else {
+        alert('Erreur lors de la mise à jour : ' + response.message);
+      }
+    } catch (error) {
+      console.error('Erreur lors de la mise à jour :', error);
+      alert('Une erreur est survenue lors de la mise à jour');
+    }
   };
   
   
@@ -1371,36 +1531,12 @@ function ModuleGestion() {
 
               {selectedDevice.type === 'sécurité' && (
                 <>
-                  {selectedDevice.name.includes('Présence') && (
-                    <>
-                      <div style={{ marginBottom: '1rem' }}>
-                        <strong>Mouvement détecté :</strong> {selectedDevice.movementDetected ? 'Oui' : 'Non'}
-                      </div>
-                      <div style={{ marginBottom: '1rem' }}>
-                        <strong>Dernier mouvement :</strong> {selectedDevice.lastMovement}
-                      </div>
-                    </>
-                  )}
-                  {selectedDevice.name.includes('Caméra') && (
-                    <>
-                      <div style={{ marginBottom: '1rem' }}>
-                        <strong>Statut d'enregistrement :</strong> {selectedDevice.recordingStatus}
-                      </div>
-                      <div style={{ marginBottom: '1rem' }}>
-                        <strong>Sensibilité au mouvement :</strong> {selectedDevice.motionSensitivity}
-                      </div>
-                    </>
-                  )}
-                  {selectedDevice.name.includes('Fumée') && (
-                    <>
-                      <div style={{ marginBottom: '1rem' }}>
-                        <strong>Fumée détectée :</strong> {selectedDevice.smokeDetected ? 'Oui' : 'Non'}
-                      </div>
-                      <div style={{ marginBottom: '1rem' }}>
-                        <strong>Niveau de monoxyde de carbone :</strong> {selectedDevice.carbonMonoxideLevel}
-                      </div>
-                    </>
-                  )}
+                  <div style={{ marginBottom: '1rem' }}>
+                    <strong>Sensibilité au mouvement :</strong> {selectedDevice.motionSensitivity}
+                  </div>
+                  <div style={{ marginBottom: '1rem' }}>
+                    <strong>Mouvement détecté :</strong> {selectedDevice.movementDetected ? 'Oui' : 'Non'}
+                  </div>
                 </>
               )}
 

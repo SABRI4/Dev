@@ -7,6 +7,7 @@ import ModuleGestion from './pages/ModuleGestion/ModuleGestion';
 import AdminDeleteRequests from './pages/Modulerequete/AdminDeleteRequests.jsx';
 import ModuleVisualisation from './pages/ModuleVisualisation/ModuleVisualisation';
 import ModuleAdministration from './pages/ModuleAdministration/ModuleAdministration';
+import ProfilePage from './pages/Profile/ProfilePage';
 
 function App() {
   const storedUser = localStorage.getItem("user");
@@ -17,6 +18,7 @@ function App() {
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/auth" element={<AuthPage />} />
+        <Route path="/profile" element={<ProfilePage />} />
 
         {/* Accessible à tout le monde */}
         <Route path="/module-information" element={<ModuleInformation />} />
@@ -43,7 +45,6 @@ function App() {
                 <Route path="/module-visualisation" element={<ModuleVisualisation />} />
                 <Route path="/module-gestion" element={<ModuleGestion />} />
                 <Route path="/module-administration" element={<ModuleAdministration />} />
-                <Route path="/module-requête" element={<AdminDeleteRequests />} />
               </>
             )}
           </>

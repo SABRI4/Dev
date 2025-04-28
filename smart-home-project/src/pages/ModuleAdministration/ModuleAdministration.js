@@ -3,6 +3,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import logoImage from '../../Pictures/cyhome-logo.png';
 import cytechLogo from '../../Pictures/cytech-logo.png';
 import backgroundImage from '../../Pictures/kitchen-background.jpg';
+import Modulerequete from '../Modulerequete/AdminDeleteRequests.jsx';
+import ModuleGestion from '../ModuleGestion/ModuleGestion.js';
 
 // Importation pour la génération de PDF
 import { jsPDF } from 'jspdf';
@@ -12,15 +14,18 @@ const ModuleAdministration = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
   const API_URL = '  http://localhost:3020/Plateforme/smart-home-project/api/User-manager.php';
+  const DEVICES_API = 'http://localhost:3020/Plateforme/smart-home-project/api/device.php';
 
-  const [users, setUsers] = useState([]);                 // <- NEW
-  const [connectedDevices, setConnectedDevices] = useState([]); // <- NEW
+  const [users, setUsers] = useState([]);                
+  const [deviceTypeOptions, setDeviceTypeOptions] = useState([]);
+
+  const [connectedDevices, setConnectedDevices] = useState([]); 
   const initialNewUserState = {
     username: '',   
     password: '',   
     nom: '', prenom: '',
     email: '',
-    photoFile: null,        // on change plus bas
+    photoFile: null,       
     role: '',
     points: 0,
     niveau: '',
@@ -56,6 +61,26 @@ const ModuleAdministration = () => {
   const [focusedSearch, setFocusedSearch] = useState(false);
   const [hoveredPanel, setHoveredPanel] = useState(null);
 
+
+
+  async function apiGet(params) {
+    const url = DEVICES_API + '?' + new URLSearchParams(params).toString();
+    const res = await fetch(url, { credentials: 'include' });
+    return res.json();
+  }
+  
+  async function apiPost(params, payload) {
+    const url = DEVICES_API + '?' + new URLSearchParams(params).toString();
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify(payload)
+    });
+    return res.json();
+  }
+
+  
   // Fonction de navigation avec transition
     const handleNavigateHome = (e) => {
       e.preventDefault();
@@ -68,6 +93,24 @@ const ModuleAdministration = () => {
   // Gestionnaires d'événements pour les effets de hover
   const handleCardHover = (cardId) => {
     setHoveredCard(cardId);
+  };
+
+  const handleBackup = async () => {
+    try {
+      const res = await fetch('http://localhost:3020/Plateforme/smart-home-project/api/Backup.php', {
+        credentials: 'include'
+      });
+      const data = await res.json();
+      if (data.status === 'success') {
+        alert(`Sauvegarde créée : ${data.file}`);
+      } else {
+        console.error(data.output);
+        alert('Erreur lors de la sauvegarde');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Erreur réseau lors de la sauvegarde');
+    }
   };
 
   const handleCardLeave = () => {
@@ -85,6 +128,8 @@ const ModuleAdministration = () => {
   const handleSearchHover = () => {
     setHoveredSearch(true);
   };
+
+  
 
   const handleSearchLeave = () => {
     setHoveredSearch(false);
@@ -162,6 +207,22 @@ const ModuleAdministration = () => {
   }, [theme]);
 
   useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch(`${DEVICES_API}?action=categories`, {
+          credentials: 'include'
+        });
+        const { categories } = await res.json();
+        setDeviceTypeOptions(categories);
+      } catch (err) {
+        console.error('Erreur chargement catégories', err);
+      }
+    })();
+  }, []);
+  
+
+
+  useEffect(() => {
     const fetchDeleteRequests = async () => {
       try {
         const response = await fetch('http://localhost:3020/Plateforme/smart-home-project/api/User-manager.php');
@@ -174,6 +235,22 @@ const ModuleAdministration = () => {
   
     fetchDeleteRequests();
   }, []);
+
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch(DEVICES_API, {
+          credentials: 'include'
+        });
+        const { devices } = await res.json();     
+        setConnectedDevices(devices);
+      } catch (err) {
+        console.error('Erreur chargement devices', err);
+      }
+    })();
+  }, []);
+  
   
   const [newDevice, setNewDevice] = useState({
     name: '',
@@ -185,7 +262,6 @@ const ModuleAdministration = () => {
     batteryLevel: 100
   });
   const [editDevice,setEditDevice] = useState(null);
-  const [deviceTypeOptions, setDeviceTypeOptions] = useState(['thermostat', 'climatiseur', 'volets', 'lumière', 'sécurité', 'météo']);
   const [newCategory, setNewCategory] = useState('');
   const [history, setHistory] = useState([]);
   const [validationRule, setValidationRule] = useState('Automatique');
@@ -239,16 +315,39 @@ const ModuleAdministration = () => {
       setSelectedDevice(device);
     };
 
-    const handleDeleteDevice = (deviceId) => {
-    setConnectedDevices(connectedDevices.filter(device => device.id !== deviceId));
+    const handleDeleteDevice = async (deviceId) => {
+      if (!window.confirm('Confirmer la suppression ?')) return;
+      try {
+        await fetch(`${DEVICES_API}?id=${deviceId}`, {
+          method: 'DELETE',
+          credentials: 'include'
+        });
+        setConnectedDevices(ds => ds.filter(d => d.id !== deviceId));
         setSelectedDevice(null);
+      } catch (err) {
+        alert(`Erreur suppression : ${err.message}`);
+      }
     };
+    
 
-    const handleSaveDeviceEdit = () => {
-        setConnectedDevices(prev => prev.map(dev => dev.id === editDevice.id ? editDevice : dev));
+    const handleSaveDeviceEdit = async () => {
+      try {
+        await fetch(`${DEVICES_API}?id=${editDevice.id}`, {
+          method: 'PUT',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(editDevice)
+        });
+        setConnectedDevices(devs =>
+          devs.map(d => d.id === editDevice.id ? editDevice : d)
+        );
         setEditDevice(null);
         setSelectedDevice(editDevice);
-      };
+      } catch (err) {
+        alert(`Erreur mise à jour : ${err.message}`);
+      }
+    };
+    
 
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
@@ -284,6 +383,7 @@ const ModuleAdministration = () => {
 
   const handleUserClick = (user) => {
     setSelectedUser(user);
+    setEditUser(user);
     setActiveModal('userDetails');
   };
 
@@ -322,69 +422,128 @@ const ModuleAdministration = () => {
     }
   };
   
-
   const filteredUsers = users.filter(user =>
       user.name.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
     const handleSaveEdit = async () => {
-      if (!selectedUser) return;
       try {
         const res = await fetch(API_URL, {
-          method : 'PUT',
+          method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body   : JSON.stringify({
-            id       : selectedUser.id,
-            username : selectedUser.name,
-            role     : selectedUser.role
-          }),
-          credentials: 'include'
+          credentials: 'include',
+          body: JSON.stringify(editUser)
         });
         const json = await res.json();
         if (json.status !== 'success') throw new Error(json.message);
     
+        setUsers(us => us.map(u => u.id === editUser.id ? editUser : u));
         setActiveModal(null);
-        fetchUsers();
       } catch (err) {
         alert(err.message);
       }
     };
     
+    
+  
+    const handleOpenEdit = (user) => {
+      setEditUser(user);
+      setActiveModal('editUser');
+    };
+    
 
   const statusOptions = ['actif', 'inactif'];
-    const handleAddDevice = () => {
-        if (newDevice.name && newDevice.type && newDevice.status && newDevice.room) {
-          setConnectedDevices([...connectedDevices, { ...newDevice, id: Date.now() }]);
-        setShowAddDeviceForm(false);
-          setNewDevice({
-            name: '',
-            type: '',
-            status: '',
-            room: '',
-            energyConsumption: 0,
-            lastMaintenance: '',
-            batteryLevel: 100
-          });
-        }
-      };
-
-  const handleAddCategory = () => {
-      if (newCategory && !deviceTypeOptions.includes(newCategory)) {
-      setDeviceTypeOptions([...deviceTypeOptions, newCategory]);
-        setNewCategory('');
+  const handleAddDevice = async () => {
+    if (!newDevice.name || !newDevice.type || !newDevice.room) return;
+  
+    try {
+      const res = await fetch(DEVICES_API, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newDevice)
+      });
+      const json = await res.json();
+  
+      if (!json.status) {
+        throw new Error(json.message || 'Erreur création device');
       }
-    };
+  
+      // on récupère l’ID (json.id si c’est le nom) et on ajoute
+      setConnectedDevices(devices => [
+        ...devices,
+        { ...newDevice, id: json.id }
+      ]);
+  
+      setShowAddDeviceForm(false);
+      setNewDevice({
+        name: '',
+        type: '',
+        status: '',
+        room: '',
+        energyConsumption: 0,
+        batteryLevel: 100,
+        lastMaintenance: ''
+      });
+    } catch (err) {
+      alert(`Erreur création : ${err.message}`);
+    }
+  };
+  
+  
+  const handleAddCategory = async () => {
+    if (newCategory && !deviceTypeOptions.includes(newCategory)) {
+      try {
+        const response = await fetch(`${DEVICES_API}?action=addCategory`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ name: newCategory }),
+        });
 
-  const handleDeleteCategory = (categoryToDelete) => {
-    // Supprimer la catégorie
-    setDeviceTypeOptions(deviceTypeOptions.filter(type => type !== categoryToDelete));
-    
-    // Supprimer tous les appareils de cette catégorie
-    setConnectedDevices(connectedDevices.filter(device => device.type !== categoryToDelete));
-    
-    // Afficher une notification
-    alert(`La catégorie "${categoryToDelete}" et tous ses appareils ont été supprimés.`);
-    };
+        const data = await response.json();
+        if (data.success) {
+          setDeviceTypeOptions([...deviceTypeOptions, newCategory]);
+          setNewCategory('');
+        } else {
+          alert('Erreur lors de l\'ajout de la catégorie : ' + data.message);
+        }
+      } catch (error) {
+        console.error('Erreur ajout catégorie', error);
+      }
+    }
+  };
+  const handleDeleteCategory = async (categoryToDelete) => {
+    try {
+      // Trouver l'ID de la catégorie à partir du nom
+      const cat = deviceTypeOptions.find(c => c.name === categoryToDelete || c === categoryToDelete);
+      if (!cat) {
+        alert('Catégorie non trouvée.');
+        return;
+      }
+
+
+      const categoryId = cat.id ?? cat;
+
+      const response = await fetch(`${DEVICES_API}?action=deleteCategory&id=${categoryId}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        // MAJ front
+        setDeviceTypeOptions(deviceTypeOptions.filter(type => type !== categoryToDelete && type.name !== categoryToDelete));
+        setConnectedDevices(connectedDevices.filter(device => device.type !== categoryToDelete));
+
+        alert(`La catégorie "${categoryToDelete}" et tous ses appareils ont été supprimés.`);
+      } else {
+        alert('Erreur suppression catégorie : ' + data.message);
+      }
+    } catch (error) {
+      console.error('Erreur suppression catégorie', error);
+    }
+  };
 
   const closeModal = () => {
     setActiveModal(null);
@@ -804,11 +963,15 @@ const ModuleAdministration = () => {
       role, points, niveau, birthdate, gender, age, photoFile
     } = newUser;
   
-    if (
-      [username, password, email, role, niveau, birthdate, gender].some(v => !v) ||
-      points == null || age == null
-    ) {
-      return alert('Merci de remplir tous les champs !');
+    // Validation des champs obligatoires
+    if (!username || !password || !email || !role || !niveau || !birthdate || !gender || points == null || age == null) {
+      return alert('Tous les champs sont obligatoires !');
+    }
+
+    // Validation du format email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return alert('Veuillez entrer une adresse email valide !');
     }
   
     // on construit le FormData
@@ -826,8 +989,8 @@ const ModuleAdministration = () => {
     
     if (photoFile instanceof File) {
       formData.append('photo', photoFile);
-    }
-  
+    } 
+    
     try {
       const res = await fetch(API_URL, {
         method: 'POST',
@@ -1054,7 +1217,7 @@ const ModuleAdministration = () => {
                       style={getButtonStyle('backup')}
                       onMouseEnter={() => handleButtonHover('backup')}
                       onMouseLeave={handleButtonLeave}
-                      onClick={() => alert('Sauvegarde effectuée !')}
+                      onClick={handleBackup}
                     >
                       Effectuer une sauvegarde
                     </button>
@@ -1330,108 +1493,10 @@ const ModuleAdministration = () => {
       case 'request':
         return (
           <div style={styles.modal}>
-            <div style={styles.modalContent}>
-              <div style={styles.modalHeader}>
-                <h2 style={styles.modalTitle}>Requêtes</h2>
-                <button 
-                  style={getButtonStyle('close')}
-                  onMouseEnter={() => handleButtonHover('close')}
-                  onMouseLeave={handleButtonLeave}
-                  onClick={closeModal}
-                >
-                  Fermer
-                </button>
-              </div>
-              <div style={styles.cardContainer}>
-                <div 
-                  style={getCardStyle('userRequests')}
-                  onMouseEnter={() => handleCardHover('userRequests')}
-                  onMouseLeave={handleCardLeave}
-                >
-                  <h3 style={{
-                    ...styles.cardTitle,
-                    color: hoveredCard === 'userRequests' ? '#E67E22' : '#f5f5f5',
-                    borderBottom: `2px solid ${hoveredCard === 'userRequests' ? '#E67E22' : 'rgba(211, 84, 0, 0.3)'}`
-                  }}>
-                    Demandes utilisateurs
-                  </h3>
-                  <div style={styles.cardContent}>
-                    <button 
-                      style={getButtonStyle('viewRequests')}
-                      onMouseEnter={() => handleButtonHover('viewRequests')}
-                      onMouseLeave={handleButtonLeave}
-                      onClick={() => alert('Liste des demandes affichée !')}
-                    >
-                      Voir les demandes
-                </button>
-                    <button 
-                      style={getButtonStyle('createRequest')}
-                      onMouseEnter={() => handleButtonHover('createRequest')}
-                      onMouseLeave={handleButtonLeave}
-                      onClick={() => alert('Nouvelle demande créée !')}
-                    >
-                      Créer une demande
-                </button>
-              </div>
-            </div>
-                <div 
-                  style={getCardStyle('support')}
-                  onMouseEnter={() => handleCardHover('support')}
-                  onMouseLeave={handleCardLeave}
-                >
-                  <h3 style={{
-                    ...styles.cardTitle,
-                    color: hoveredCard === 'support' ? '#E67E22' : '#f5f5f5',
-                    borderBottom: `2px solid ${hoveredCard === 'support' ? '#E67E22' : 'rgba(211, 84, 0, 0.3)'}`
-                  }}>
-                    Support
-                  </h3>
-                  <div style={styles.cardContent}>
-                    <button 
-                      style={getButtonStyle('viewTickets')}
-                      onMouseEnter={() => handleButtonHover('viewTickets')}
-                      onMouseLeave={handleButtonLeave}
-                      onClick={() => alert('Tickets affichés !')}
-                    >
-                      Voir les tickets
-                </button>
-                    <button 
-                      style={getButtonStyle('createTicket')}
-                      onMouseEnter={() => handleButtonHover('createTicket')}
-                      onMouseLeave={handleButtonLeave}
-                      onClick={() => alert('Nouveau ticket créé !')}
-                    >
-                      Créer un ticket
-                </button>
-              </div>
-            </div>
-                <div 
-                  style={getCardStyle('history')}
-                  onMouseEnter={() => handleCardHover('history')}
-                  onMouseLeave={handleCardLeave}
-                >
-                  <h3 style={{
-                    ...styles.cardTitle,
-                    color: hoveredCard === 'history' ? '#E67E22' : '#f5f5f5',
-                    borderBottom: `2px solid ${hoveredCard === 'history' ? '#E67E22' : 'rgba(211, 84, 0, 0.3)'}`
-                  }}>
-                    Historique
-                  </h3>
-                  <div style={styles.cardContent}>
-                    <button 
-                      style={getButtonStyle('viewHistory')}
-                      onMouseEnter={() => handleButtonHover('viewHistory')}
-                      onMouseLeave={handleButtonLeave}
-                      onClick={() => alert('Historique affiché !')}
-                    >
-                      Voir l'historique
-                </button>
-              </div>
-            </div>
-                      </div>
-              </div>
-            </div>
-          );
+            <Modulerequete />
+          </div>
+        );
+          
       case 'userDetails':
         return (
           <div style={{
@@ -1461,8 +1526,8 @@ const ModuleAdministration = () => {
               {/* Photo de l'utilisateur */}
               <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '2rem' }}>
                 <img
-                  src={selectedUser.photo}
-                  alt={`Photo de ${selectedUser.name}`}
+                  src={selectedUser && selectedUser.photo ? selectedUser.photo : '/api/uploads/avatar.jpg'}
+                  alt={selectedUser ? selectedUser.name : 'Avatar'}
                   style={{
                     width: '150px',
                     height: '150px',
@@ -1471,6 +1536,7 @@ const ModuleAdministration = () => {
                     border: '3px solid #D35400',
                     boxShadow: '0 4px 8px rgba(0,0,0,0.2)'
                   }}
+                  onError={e => { e.target.onerror = null; e.target.src = '/api/uploads/avatar.jpg'; }}
                 />
               </div>
               
@@ -1647,77 +1713,158 @@ const ModuleAdministration = () => {
               <h2 style={{...styles.modalTitle, color: '#D35400', textAlign: 'center', marginBottom: '0rem'}}>Modifier l'utilisateur</h2>
               
               {/* Section Informations personnelles */}
-              <div style={{ marginBottom: '2rem' }}>
-                <h3 style={{ color: '#D35400', marginBottom: '1rem', borderBottom: '1px solid #D35400', paddingBottom: '0.5rem' }}>
-                  Informations personnelles
-                </h3>
-                <div style={styles.formGroup}>
-                  <label style={{...styles.formLabel, color: '#000000'}}>Nom</label>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', width: '100%' }}>
+                {/* Photo de profil */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+                  <label style={{ fontWeight: 'bold', color: '#333', fontSize: '0.9rem' }}>
+                    Photo de profil
+                  </label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={e =>
+                      setNewUser({
+                        ...editUser,
+                        photoFile: e.target.files[0]
+                      })
+                    }
+                  />
+                </div>
+
+                {/* Nom d’utilisateur */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+                  <label style={{ fontWeight: 'bold', color: '#333', fontSize: '0.9rem' }}>
+                    Nom d’utilisateur
+                  </label>
                   <input
                     type="text"
-                    value={selectedUser.name}
-                    onChange={(e) => setSelectedUser({...selectedUser, name: e.target.value})}
-                    style={{...styles.formInput, color: '#000000'}}
+                    placeholder="Nom d’utilisateur"
+                    value={editUser.username}
+                    onChange={e => setEditUser({ ...editUser, username: e.target.value })}
+                    style={styles.formInput}
                   />
                 </div>
-                <div style={styles.formGroup}>
-                  <label style={{...styles.formLabel, color: '#000000'}}>Email</label>
+
+                {/* Email */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+                  <label style={{ fontWeight: 'bold', color: '#333', fontSize: '0.9rem' }}>
+                    Email
+                  </label>
                   <input
                     type="email"
-                    value={selectedUser.email}
-                    onChange={(e) => setSelectedUser({...selectedUser, email: e.target.value})}
-                    style={{...styles.formInput, color: '#000000'}}
+                    placeholder="Email"
+                    value={editUser.email}
+                    onChange={e => setEditUser({ ...editUser, email: e.target.value })}
+                    style={styles.formInput}
                   />
                 </div>
-                <div style={styles.formGroup}>
-                  <label style={{...styles.formLabel, color: '#000000'}}>Genre</label>
+
+                {/* Mot de passe */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+                  <label style={{ fontWeight: 'bold', color: '#333', fontSize: '0.9rem' }}>
+                    Mot de passe
+                  </label>
+                  <input
+                    type="password"
+                    placeholder="Mot de passe"
+                    value={editUser.password}
+                    onChange={e => setEditUser({ ...editUser, password: e.target.value })}
+                    style={styles.formInput}
+                  />
+                </div>
+
+                {/* Âge */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+                  <label style={{ fontWeight: 'bold', color: '#333', fontSize: '0.9rem' }}>
+                    Âge
+                  </label>
+                  <input
+                    type="number"
+                    placeholder="Âge"
+                    value={editUser.age}
+                    onChange={e => setEditUser({ ...editUser, age: e.target.value })}
+                    style={styles.formInput}
+                  />
+                </div>
+
+                {/* Genre */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+                  <label style={{ fontWeight: 'bold', color: '#333', fontSize: '0.9rem' }}>
+                    Genre
+                  </label>
                   <select
-                    value={selectedUser.gender}
-                    onChange={(e) => setSelectedUser({...selectedUser, gender: e.target.value})}
-                    style={{...styles.formInput, color: '#000000'}}
+                    value={editUser.gender}
+                    onChange={e => setEditUser({ ...editUser, gender: e.target.value })}
+                    style={styles.formInput}
                   >
+                    <option value="">Sélectionner le genre</option>
                     <option value="Homme">Homme</option>
                     <option value="Femme">Femme</option>
                     <option value="Autre">Autre</option>
                   </select>
                 </div>
-                <div style={styles.formGroup}>
-                  <label style={{...styles.formLabel, color: '#000000'}}>Âge</label>
-                  <input
-                    type="number"
-                    min="0"
-                    max="120"
-                    value={selectedUser.age}
-                    onChange={(e) => setSelectedUser({...selectedUser, age: e.target.value})}
-                    style={{...styles.formInput, color: '#000000'}}
-                  />
-                </div>
-              </div>
 
-              {/* Section Informations du compte */}
-              <div style={{ marginBottom: '2rem' }}>
-                <h3 style={{ color: '#D35400', marginBottom: '1rem', borderBottom: '1px solid #D35400', paddingBottom: '0.5rem' }}>
-                  Informations du compte
-                </h3>
-                <div style={styles.formGroup}>
-                  <label style={{...styles.formLabel, color: '#000000'}}>Rôle</label>
+                {/* Rôle */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+                  <label style={{ fontWeight: 'bold', color: '#333', fontSize: '0.9rem' }}>
+                    Rôle
+                  </label>
                   <select
-                    value={selectedUser.role}
-                    onChange={(e) => setSelectedUser({...selectedUser, role: e.target.value})}
-                    style={{...styles.formInput, color: '#000000'}}
+                    value={editUser.role}
+                    onChange={e => setEditUser({ ...editUser, role: e.target.value })}
+                    style={styles.formInput}
                   >
+                    <option value="">Sélectionner le rôle</option>
+                    <option value="visiteur">Visiteur</option>
+                    <option value="simple">Simple</option>
+                    <option value="complexe">Complexe</option>
                     <option value="admin">Administrateur</option>
-                    <option value="user">Utilisateur</option>
                   </select>
                 </div>
-                <div style={styles.formGroup}>
-                  <label style={{...styles.formLabel, color: '#000000'}}>Points</label>
+
+                {/* Points */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+                  <label style={{ fontWeight: 'bold', color: '#333', fontSize: '0.9rem' }}>
+                    Points
+                  </label>
                   <input
                     type="number"
-                    min="0"
-                    value={selectedUser.points}
-                    onChange={(e) => setSelectedUser({...selectedUser, points: e.target.value})}
-                    style={{...styles.formInput, color: '#000000'}}
+                    placeholder="Points"
+                    value={editUser.points}
+                    onChange={e => setEditUser({ ...editUser, points: e.target.value })}
+                    style={styles.formInput}
+                  />
+                </div>
+
+                {/* Niveau */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+                  <label style={{ fontWeight: 'bold', color: '#333', fontSize: '0.9rem' }}>
+                    Niveau
+                  </label>
+                  <select
+                    value={editUser.niveau}
+                    onChange={e => setEditUser({ ...editUser, niveau: e.target.value })}
+                    style={styles.formInput}
+                  >
+                    <option value="">Sélectionner le niveau</option>
+                    <option value="debutant">Débutant</option>
+                    <option value="intermediaire">Intermédiaire</option>
+                    <option value="avance">Avancé</option>
+                    <option value="expert">Expert</option>
+                  </select>
+                </div>
+
+                {/* Date de naissance */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+                  <label style={{ fontWeight: 'bold', color: '#333', fontSize: '0.9rem' }}>
+                    Date de naissance
+                  </label>
+                  <input
+                    type="date"
+                    value={editUser.birthdate}
+                    onChange={e => setEditUser({ ...editUser, birthdate: e.target.value })}
+                    style={styles.formInput}
                   />
                 </div>
               </div>
@@ -2235,12 +2382,10 @@ const ModuleAdministration = () => {
             <button style={styles.userModalClose} onClick={() => setShowUserModal(false)}>×</button>
             <div style={styles.userModalHeader}>
               <img 
-                src={selectedUser.photo} 
-                alt={selectedUser.name} 
+                src={selectedUser && selectedUser.photo ? selectedUser.photo : '/api/uploads/avatar.jpg'}
+                alt={selectedUser ? selectedUser.name : 'Avatar'}
                 style={styles.userModalPhoto}
-                onError={(e) => {
-                  e.target.onerror = null;
-                  e.target.src = 'https://via.placeholder.com/80x80?text=Photo+manquante';
+                onError={e => { e.target.onerror = null; e.target.src = '/api/uploads/avatar.jpg'; 
                 }}
               />
               <h2 style={styles.userModalTitle}>{selectedUser.name}</h2>
@@ -2326,8 +2471,25 @@ const ModuleAdministration = () => {
       <h2 style={{ fontSize: '1.8rem', marginBottom: '1rem', color: '#D35400' }}>
         Ajouter un utilisateur
       </h2>
+    
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', width: '100%' }}>
+        {/* Aperçu de la photo de profil */}
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1rem' }}>
+          <img
+            src={newUser.photoFile ? URL.createObjectURL(newUser.photoFile) : '/api/uploads/avatar.jpg'}
+            alt="Aperçu photo de profil"
+            style={{
+              width: '100px',
+              height: '100px',
+              borderRadius: '50%',
+              objectFit: 'cover',
+              border: '2px solid #D35400',
+              background: '#fff'
+            }}
+            onError={e => { e.target.onerror = null; e.target.src = '/api/uploads/avatar.jpg'; }}
+          />
+        </div>
         {/* Photo de profil */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
           <label style={{ fontWeight: 'bold', color: '#333', fontSize: '0.9rem' }}>
@@ -2355,7 +2517,8 @@ const ModuleAdministration = () => {
             placeholder="Nom d’utilisateur"
             value={newUser.username}
             onChange={e => setNewUser({ ...newUser, username: e.target.value })}
-            style={styles.formInput}
+            required
+            style={styles.input}
           />
         </div>
 
@@ -2369,7 +2532,8 @@ const ModuleAdministration = () => {
             placeholder="Email"
             value={newUser.email}
             onChange={e => setNewUser({ ...newUser, email: e.target.value })}
-            style={styles.formInput}
+            required
+            style={styles.input}
           />
         </div>
 
@@ -2383,7 +2547,8 @@ const ModuleAdministration = () => {
             placeholder="Mot de passe"
             value={newUser.password}
             onChange={e => setNewUser({ ...newUser, password: e.target.value })}
-            style={styles.formInput}
+            required
+            style={styles.input}
           />
         </div>
 
@@ -2397,19 +2562,21 @@ const ModuleAdministration = () => {
             placeholder="Âge"
             value={newUser.age}
             onChange={e => setNewUser({ ...newUser, age: e.target.value })}
-            style={styles.formInput}
+            required
+            style={styles.input}
           />
         </div>
 
         {/* Genre */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
           <label style={{ fontWeight: 'bold', color: '#333', fontSize: '0.9rem' }}>
-            Genre
+            Genre <span style={{ color: 'red' }}>*</span>
           </label>
           <select
             value={newUser.gender}
             onChange={e => setNewUser({ ...newUser, gender: e.target.value })}
             style={styles.formInput}
+            required
           >
             <option value="">Sélectionner le genre</option>
             <option value="Homme">Homme</option>
@@ -2421,12 +2588,13 @@ const ModuleAdministration = () => {
         {/* Rôle */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
           <label style={{ fontWeight: 'bold', color: '#333', fontSize: '0.9rem' }}>
-            Rôle
+            Rôle <span style={{ color: 'red' }}>*</span>
           </label>
           <select
             value={newUser.role}
             onChange={e => setNewUser({ ...newUser, role: e.target.value })}
             style={styles.formInput}
+            required
           >
             <option value="">Sélectionner le rôle</option>
             <option value="visiteur">Visiteur</option>
@@ -2445,20 +2613,23 @@ const ModuleAdministration = () => {
             type="number"
             placeholder="Points"
             value={newUser.points}
-            onChange={e => setNewUser({ ...newUser, points: e.target.value })}
-            style={styles.formInput}
+            onChange={e => setNewUser({ ...newUser, points: parseInt(e.target.value) })}
+            required
+            min="0"
+            style={styles.input}
           />
         </div>
 
         {/* Niveau */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
           <label style={{ fontWeight: 'bold', color: '#333', fontSize: '0.9rem' }}>
-            Niveau
+            Niveau <span style={{ color: 'red' }}>*</span>
           </label>
           <select
             value={newUser.niveau}
             onChange={e => setNewUser({ ...newUser, niveau: e.target.value })}
             style={styles.formInput}
+            required
           >
             <option value="">Sélectionner le niveau</option>
             <option value="debutant">Débutant</option>
@@ -2471,13 +2642,14 @@ const ModuleAdministration = () => {
         {/* Date de naissance */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
           <label style={{ fontWeight: 'bold', color: '#333', fontSize: '0.9rem' }}>
-            Date de naissance
+            Date de naissance <span style={{ color: 'red' }}>*</span>
           </label>
           <input
             type="date"
             value={newUser.birthdate}
             onChange={e => setNewUser({ ...newUser, birthdate: e.target.value })}
             style={styles.formInput}
+            required
           />
         </div>
       </div>

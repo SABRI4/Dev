@@ -8,7 +8,7 @@ if (session_status() === PHP_SESSION_NONE) {
 header("Content-Type: application/json");
 header("Access-Control-Allow-Origin: http://localhost:3002");
 header("Access-Control-Allow-Credentials: true");
-header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
+header("Access-Control-Allow-Methods: GET, POST, PUT, OPTIONS, DELETE");
 header("Access-Control-Allow-Headers: Content-Type, Authorization");
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
@@ -27,10 +27,13 @@ switch ($method) {
             $sql = "
                 SELECT
                     id,
+                    username,
                     username AS name,
                     nom,
                     prenom,
                     email,
+                    niveau,
+                    birthdate,
                     photo,
                     role,
                     points,
@@ -47,13 +50,11 @@ switch ($method) {
         break;
 
     case 'POST':
-        // On attend un formulaire multipart/form-data
         $username  = $_POST['username']  ?? null;
         $password  = $_POST['password']  ?? null;
         $email     = $_POST['email']     ?? null;
         $role      = $_POST['role']      ?? null;
         $points    = $_POST['points']    ?? 0;
-        // On déclare nom/prenom même s'ils ne sont pas envoyés pour éviter le warning
         $nom       = $_POST['nom']       ?? '';
         $prenom    = $_POST['prenom']    ?? '';
         $niveau    = $_POST['niveau']    ?? null;
@@ -61,7 +62,6 @@ switch ($method) {
         $gender    = $_POST['gender']    ?? null;
         $age       = $_POST['age']       ?? null;
 
-        // Photo de profil (optionnelle)
         if (!empty($_FILES['photo']) && $_FILES['photo']['error'] === UPLOAD_ERR_OK) {
             $uploadDir   = __DIR__ . '/uploads/';
             $tmpName     = $_FILES['photo']['tmp_name'];
@@ -70,7 +70,6 @@ switch ($method) {
             move_uploaded_file($tmpName, $destination);
             $photoPath   = "uploads/$filename";
         } else {
-            // Image par défaut
             $photoPath = 'uploads/default-avatar.jpg';
         }
 
@@ -90,10 +89,8 @@ switch ($method) {
         }
 
         try {
-            // Hash du mot de passe
             $hashed = password_hash($password, PASSWORD_DEFAULT);
 
-            // Requête d’insertion
             $stmt = $pdo->prepare("
                 INSERT INTO users
                   (username, password, nom, prenom, email, photo, role, points, niveau, birthdate, gender, age)
@@ -120,50 +117,38 @@ switch ($method) {
         }
         break;
 
-    case 'PUT':
-        // Modifier un utilisateur
-        $data = json_decode(file_get_contents("php://input"), true);
-
-        if (
-            !isset(
-                $data['id'],
-                $data['username'],
-                $data['role'],
-                $data['email'],
-                $data['photo']
-            )
-        ) {
-            respond(false, ['message' => 'Paramètres requis manquants.'], 400);
-        }
-
-        try {
-            $sql = "
-                UPDATE users
-                SET
-                    username = ?,
-                    role     = ?,
-                    nom      = ?,
-                    prenom   = ?,
-                    email    = ?,
-                    photo    = ?
-                WHERE id = ?
-            ";
-            $stmt = $pdo->prepare($sql);
-            $stmt->execute([
-                $data['username'],
-                $data['role'],
-                $data['nom']    ?? '',
-                $data['prenom'] ?? '',
-                $data['email'],
-                $data['photo'],
-                $data['id']
-            ]);
-
-            respond(true, ['message' => 'Utilisateur mis à jour avec succès.']);
-        } catch (PDOException $e) {
-            respond(false, ['message' => 'Erreur lors de la mise à jour de l\'utilisateur.'], 500);
-        }
-        break;
+        case 'PUT':
+            $data = json_decode(file_get_contents("php://input"), true);
+        
+            // On ne force plus 'niveau' ni 'age' ici
+            if (
+                !isset($data['username'], $data['email'], $data['role'])
+            ) {
+                respond(false, ['message' => 'ID, username, email et role sont requis.'], 400);
+            }
+        
+            // Puis dans l'UPDATE, on ne touche que ce qu'on a vraiment
+            try {
+                $sql = "
+                    UPDATE users
+                       SET username  = ?,
+                           email     = ?,
+                           role      = ?
+                     WHERE id        = ?
+                ";
+                $stmt = $pdo->prepare($sql);
+                $stmt->execute([
+                    $data['username'],
+                    $data['email'],
+                    $data['role'],
+                    $data['id']
+                ]);
+                respond(true, ['message' => 'Utilisateur mis à jour.']);
+            } catch (PDOException $e) {
+                respond(false, ['message' => 'Erreur à la mise à jour.'], 500);
+            }
+            break;
+        
 
     case 'DELETE':
         // Supprimer un utilisateur

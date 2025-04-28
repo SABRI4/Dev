@@ -95,16 +95,6 @@ function HomePage() {
                 <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/>
               </svg>
             )
-          },
-          { 
-            name: "Module Requête", 
-            description: "Demandes de suppression", 
-            path: "/module-requête",
-            icon: (
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="48" height="48" fill="#D35400">
-                <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
-              </svg>
-            )
           }
         ] : [])
     ] : [])
@@ -425,7 +415,22 @@ function HomePage() {
             {user ? (
               <>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center' }}>
+                  <Link
+                    to="/profile"
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      textDecoration: 'none',
+                      cursor: 'pointer',
+                      transition: 'all 0.3s ease'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.transform = 'scale(1.05)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = 'scale(1)';
+                    }}
+                  >
                     <img
                       src={user.photo || "/default-avatar.png"}
                       alt="Profil"
@@ -441,7 +446,7 @@ function HomePage() {
                     <span style={{ color: '#D35400', fontWeight: 'bold' }}>
                       {user.username} ({user.role}) - {user.points} pts
                     </span>
-                  </div>
+                  </Link>
                   <button
                     onClick={handleLogout}
                     style={{
