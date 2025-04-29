@@ -390,8 +390,8 @@ function AuthPage() {
                 onMouseLeave={(e) => e.target.style.borderColor = '#e0e0e0'}
               >
                 <option value="" disabled>Sélectionner le genre</option>
-                <option value="M">Homme</option>
-                <option value="F">Femme</option>
+                <option value="Homme">Homme</option>
+                <option value="Femme">Femme</option>
                 <option value="Autre">Autre</option>
                 <option value="PreferePasDire">Préfère ne pas préciser</option>
               </select>

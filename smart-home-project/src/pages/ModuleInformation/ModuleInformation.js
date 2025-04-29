@@ -251,15 +251,28 @@ function ModuleInformation() {
         <h1 style={{ margin: 0, fontSize: '1.5rem', color: '#D35400' }}>Module Information</h1>
         {user ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-            <div style={{
-              backgroundColor: '#fff',
-              borderRadius: '10px',
-              padding: '0.4rem 0.8rem',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '10px',
-              boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
-            }}>
+            <Link
+              to="/profile"
+              style={{
+                backgroundColor: '#fff',
+                borderRadius: '10px',
+                padding: '0.4rem 0.8rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+                textDecoration: 'none',
+                transition: 'all 0.3s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'scale(1.05)';
+                e.currentTarget.style.boxShadow = '0 6px 8px rgba(0,0,0,0.2)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'scale(1)';
+                e.currentTarget.style.boxShadow = '0 4px 6px rgba(0,0,0,0.1)';
+              }}
+            >
               <img
                 src={user.photo || "/default-avatar.png"}
                 alt="Profil"
@@ -275,7 +288,7 @@ function ModuleInformation() {
                 <span style={{ color: '#D35400', fontWeight: 'bold' }}>{user.username}</span>
                 <span style={{ color: '#666' }}>{user.role} – {user.points} pts</span>
               </div>
-            </div>
+            </Link>
             <button
               onClick={handleLogout}
               style={{

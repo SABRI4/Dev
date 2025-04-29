@@ -35,6 +35,7 @@ switch ($method) {
                     niveau,
                     birthdate,
                     photo,
+                    member_type,
                     role,
                     points,
                     gender,
@@ -93,8 +94,8 @@ switch ($method) {
 
             $stmt = $pdo->prepare("
                 INSERT INTO users
-                  (username, password, nom, prenom, email, photo, role, points, niveau, birthdate, gender, age)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                  (username, password, nom, prenom, email, photo, role, points, niveau, birthdate, gender, age,  memberType)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ");
             $stmt->execute([
                 $username,
@@ -108,7 +109,8 @@ switch ($method) {
                 $niveau,
                 $birthdate,
                 $gender,
-                $age
+                $age,
+                $memberType
             ]);
 
             respond(true, ['message' => 'Utilisateur ajouté avec succès.']);

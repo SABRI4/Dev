@@ -1217,22 +1217,44 @@ function ModuleGestion() {
   </div>
   {user ? (
     <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-      <div style={{ display: 'flex', alignItems: 'center' }}>
+      <Link
+        to="/profile"
+        style={{
+          backgroundColor: '#fff',
+          borderRadius: '10px',
+          padding: '0.4rem 0.8rem',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px',
+          boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+          textDecoration: 'none',
+          transition: 'all 0.3s ease'
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.transform = 'scale(1.05)';
+          e.currentTarget.style.boxShadow = '0 6px 8px rgba(0,0,0,0.2)';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.transform = 'scale(1)';
+          e.currentTarget.style.boxShadow = '0 4px 6px rgba(0,0,0,0.1)';
+        }}
+      >
         <img
-          src={user.photo}
+          src={user.photo || "/default-avatar.png"}
           alt="Profil"
           style={{
             height: '40px',
             width: '40px',
             borderRadius: '50%',
             objectFit: 'cover',
-            marginRight: '8px'
+            border: '2px solid #D35400'
           }}
         />
-        <span style={{ color: '#D35400', fontWeight: 'bold' }}>
-          {user.username} ({user.role}) - {user.points} pts
-        </span>
-      </div>
+        <div style={{ display: 'flex', flexDirection: 'column', fontSize: '0.85rem' }}>
+          <span style={{ color: '#D35400', fontWeight: 'bold' }}>{user.username}</span>
+          <span style={{ color: '#666' }}>{user.role} – {user.points} pts</span>
+        </div>
+      </Link>
       <button
         onClick={() => {
           localStorage.removeItem("user");

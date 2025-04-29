@@ -15,6 +15,8 @@ const ModuleAdministration = () => {
   const [user, setUser] = useState(null);
   const API_URL = '  http://localhost:3020/Plateforme/smart-home-project/api/User-manager.php';
   const DEVICES_API = 'http://localhost:3020/Plateforme/smart-home-project/api/device.php';
+  const [selectedBackup, setSelectedBackup] = useState('');
+
 
   const [users, setUsers] = useState([]);                
   const [deviceTypeOptions, setDeviceTypeOptions] = useState([]);
@@ -60,6 +62,21 @@ const ModuleAdministration = () => {
   const [hoveredSearch, setHoveredSearch] = useState(false);
   const [focusedSearch, setFocusedSearch] = useState(false);
   const [hoveredPanel, setHoveredPanel] = useState(null);
+  const [backups, setBackups] = useState([]);
+
+  useEffect(() => {
+    fetch('http://localhost:3020/Plateforme/smart-home-project/api/Backup.php?action=list', {
+      credentials: 'include'
+    })
+    .then(res => res.json())
+    .then(json => {
+      if (json.status === 'success') {
+        setBackups(json.files);
+      }
+    })
+    .catch(console.error);
+  }, []);
+
 
 
 
@@ -121,6 +138,58 @@ const ModuleAdministration = () => {
     setHoveredButton(buttonId);
   };
 
+
+  const handleRestore = async () => {
+    if (!selectedBackup) {
+      alert('Veuillez d\'abord choisir un fichier de sauvegarde.');
+      return;
+    }
+  
+    try {
+      const res = await fetch(
+        `http://localhost:3020/plateforme/smart-home-project/api/Backup.php?action=restore&file=${encodeURIComponent(selectedBackup)}`,
+        { credentials: 'include' }
+      );
+      const json = await res.json();
+      if (json.status === 'success') {
+        alert('Restauration réussie !');
+      } else {
+        alert('Échec de la restauration: ' + (json.message || 'Erreur inconnue'));
+        if (json.output) {
+          console.error('Détails:', json.output.join('\n'));
+        }
+      }
+    } catch (error) {
+      console.error(error);
+      alert('Erreur réseau lors de la restauration.');
+    }
+  };
+  
+  
+
+  useEffect(() => {
+    const fetchBackups = async () => {
+      try {
+        const res = await fetch('http://localhost:3020/plateforme/smart-home-project/api/Backup.php?action=list', {
+          credentials: 'include'
+        });
+        const json = await res.json();
+        setBackups(json.files || []);
+        if (json.files.length > 0) {
+          setSelectedBackup(json.files[0]); // Par défaut on sélectionne le plus récent
+        }
+      } catch (error) {
+        console.error(error);
+        alert('Erreur lors du chargement des sauvegardes.');
+      }
+    };
+
+    fetchBackups();
+  }, []);
+
+  
+  
+  
   const handleButtonLeave = () => {
     setHoveredButton(null);
   };
@@ -492,56 +561,65 @@ const ModuleAdministration = () => {
   
   
   const handleAddCategory = async () => {
-    if (newCategory && !deviceTypeOptions.includes(newCategory)) {
+    if (newCategory && !deviceTypeOptions.some(c => (typeof c === 'object' ? c.name : c) === newCategory)) {
       try {
+        console.log('Contenu de newCategory avant envoi :', JSON.stringify(newCategory));
+
         const response = await fetch(`${DEVICES_API}?action=addCategory`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
           body: JSON.stringify({ name: newCategory }),
         });
-
+  
         const data = await response.json();
         if (data.success) {
-          setDeviceTypeOptions([...deviceTypeOptions, newCategory]);
+          setDeviceTypeOptions(prev => [...prev, { id: data.data.id, name: newCategory }]);
           setNewCategory('');
         } else {
           alert('Erreur lors de l\'ajout de la catégorie : ' + data.message);
         }
       } catch (error) {
         console.error('Erreur ajout catégorie', error);
+        alert('Erreur réseau lors de l\'ajout de la catégorie.');
       }
     }
   };
+  
   const handleDeleteCategory = async (categoryToDelete) => {
     try {
-      // Trouver l'ID de la catégorie à partir du nom
-      const cat = deviceTypeOptions.find(c => c.name === categoryToDelete || c === categoryToDelete);
+      // Trouver l'objet complet ou le nom
+      const cat = deviceTypeOptions.find(c => (typeof c === 'object' ? c.name : c) === categoryToDelete);
       if (!cat) {
         alert('Catégorie non trouvée.');
         return;
       }
-
-
-      const categoryId = cat.id ?? cat;
-
+  
+      const categoryId = typeof cat === 'object' ? cat.id : null;
+      if (!categoryId) {
+        alert('Impossible de trouver l\'ID pour supprimer.');
+        return;
+      }
+  
       const response = await fetch(`${DEVICES_API}?action=deleteCategory&id=${categoryId}`, {
         method: 'DELETE',
         credentials: 'include',
       });
-
+  
       const data = await response.json();
       if (data.success) {
-        // MAJ front
-        setDeviceTypeOptions(deviceTypeOptions.filter(type => type !== categoryToDelete && type.name !== categoryToDelete));
-        setConnectedDevices(connectedDevices.filter(device => device.type !== categoryToDelete));
-
-        alert(`La catégorie "${categoryToDelete}" et tous ses appareils ont été supprimés.`);
+        // MAJ des options : on enlève la catégorie supprimée
+        setDeviceTypeOptions(prev => prev.filter(c => (typeof c === 'object' ? c.name : c) !== categoryToDelete));
+        // MAJ des devices connectés
+        setConnectedDevices(prev => prev.filter(device => device.type !== categoryToDelete));
+  
+        alert(`La catégorie "${categoryToDelete}" et ses appareils ont été supprimés.`);
       } else {
         alert('Erreur suppression catégorie : ' + data.message);
       }
     } catch (error) {
       console.error('Erreur suppression catégorie', error);
+      alert('Erreur réseau lors de la suppression de la catégorie.');
     }
   };
 
@@ -1524,21 +1602,29 @@ const ModuleAdministration = () => {
               <h2 style={{...styles.modalTitle, color: '#D35400', textAlign: 'center', marginBottom: '1rem'}}>Détails de l'utilisateur</h2>
               
               {/* Photo de l'utilisateur */}
-              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '2rem' }}>
-                <img
-                  src={selectedUser && selectedUser.photo ? selectedUser.photo : '/api/uploads/avatar.jpg'}
-                  alt={selectedUser ? selectedUser.name : 'Avatar'}
-                  style={{
+              {selectedUser.photo && selectedUser.photo !== '/api/uploads/avatar.jpg' && (
+                <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '2rem' }}>
+                  <div style={{
                     width: '150px',
                     height: '150px',
                     borderRadius: '50%',
-                    objectFit: 'cover',
                     border: '3px solid #D35400',
-                    boxShadow: '0 4px 8px rgba(0,0,0,0.2)'
-                  }}
-                  onError={e => { e.target.onerror = null; e.target.src = '/api/uploads/avatar.jpg'; }}
-                />
-              </div>
+                    boxShadow: '0 4px 8px rgba(0,0,0,0.2)',
+                    overflow: 'hidden'
+                  }}>
+                    <img
+                      src={selectedUser.photo}
+                      alt=""
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover'
+                      }}
+                      onError={e => { e.target.onerror = null; e.target.src = '/api/uploads/avatar.jpg'; }}
+                    />
+                  </div>
+                </div>
+              )}
               
               {/* Section Informations personnelles */}
               <div style={{ marginBottom: '2rem' }}>
@@ -1560,7 +1646,7 @@ const ModuleAdministration = () => {
                 <div style={styles.formGroup}>
                   <label style={{...styles.formLabel, color: '#000000'}}>Genre</label>
                   <p style={{margin: '0.5rem 0', color: '#000000', padding: '0.5rem', backgroundColor: '#f8f9fa', borderRadius: '4px'}}>
-                    {selectedUser.gender}
+                    {getGenderText(selectedUser.gender)}
                   </p>
                 </div>
                 <div style={styles.formGroup}>
@@ -2000,7 +2086,11 @@ const ModuleAdministration = () => {
     const userData = [
       ['Total utilisateurs', users.length],
       ['Administrateurs', users.filter(u => u.role === 'admin').length],
-      ['Utilisateurs standards', users.filter(u => u.role === 'user').length],
+      ['Utilisateurs complexe', users.filter(u => u.role === 'complexe').length],
+      ['Utilisateurs simple', users.filter(u => u.role === 'simple').length],
+      ['Utilisateurs visiteur', users.filter(u => u.role === 'visiteur').length],
+
+
     ];
     
     autoTable(doc, {
@@ -2075,15 +2165,16 @@ const ModuleAdministration = () => {
     doc.text('Utilisateurs récents', 20, doc.lastAutoTable.finalY + 20);
     
     const recentUsers = users.slice(-5).map(user => [
-      user.name,
+      user.username,
       user.email,
-      user.role,
+      user.role, 
+      user.member_type,
       user.points
     ]);
     
     autoTable(doc, {
       startY: doc.lastAutoTable.finalY + 30,
-      head: [['Nom', 'Email', 'Rôle', 'Type de membre', 'Points']],
+      head: [['Pseudo', 'Email', 'Rôle', 'Type de membre', 'Points']],
       body: recentUsers,
       theme: 'grid',
       headStyles: { fillColor: [211, 84, 0] }
@@ -2091,6 +2182,17 @@ const ModuleAdministration = () => {
     
     // Sauvegarder le PDF
     doc.save('rapport_plateforme.pdf');
+  };
+
+  // Fonction pour convertir le code de genre en texte lisible
+  const getGenderText = (code) => {
+    switch(code) {
+      case 'Homme': return 'Homme';
+      case 'Femme': return 'Femme';
+      case 'Autre': return 'Autre';
+      case 'PreferePasDire': return 'Préfère ne pas préciser';
+      default: return code || 'Non spécifié';
+    }
   };
 
   return (
@@ -2382,10 +2484,10 @@ const ModuleAdministration = () => {
             <button style={styles.userModalClose} onClick={() => setShowUserModal(false)}>×</button>
             <div style={styles.userModalHeader}>
               <img 
-                src={selectedUser && selectedUser.photo ? selectedUser.photo : '/api/uploads/avatar.jpg'}
-                alt={selectedUser ? selectedUser.name : 'Avatar'}
+                src={selectedUser.photo}
+                alt={selectedUser.name}
                 style={styles.userModalPhoto}
-                onError={e => { e.target.onerror = null; e.target.src = '/api/uploads/avatar.jpg'; 
+                onError={e => { e.target.onerror = null; 
                 }}
               />
               <h2 style={styles.userModalTitle}>{selectedUser.name}</h2>
@@ -2401,7 +2503,7 @@ const ModuleAdministration = () => {
               </div>
               <div style={styles.userModalInfo}>
                 <span style={styles.userModalLabel}>Genre :</span>
-                <span style={styles.userModalValue}>{selectedUser.gender}</span>
+                <span style={styles.userModalValue}>{getGenderText(selectedUser.gender)}</span>
               </div>
               <div style={styles.userModalInfo}>
                 <span style={styles.userModalLabel}>Rôle :</span>
@@ -2476,19 +2578,7 @@ const ModuleAdministration = () => {
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', width: '100%' }}>
         {/* Aperçu de la photo de profil */}
         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1rem' }}>
-          <img
-            src={newUser.photoFile ? URL.createObjectURL(newUser.photoFile) : '/api/uploads/avatar.jpg'}
-            alt="Aperçu photo de profil"
-            style={{
-              width: '100px',
-              height: '100px',
-              borderRadius: '50%',
-              objectFit: 'cover',
-              border: '2px solid #D35400',
-              background: '#fff'
-            }}
-            onError={e => { e.target.onerror = null; e.target.src = '/api/uploads/avatar.jpg'; }}
-          />
+        
         </div>
         {/* Photo de profil */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
