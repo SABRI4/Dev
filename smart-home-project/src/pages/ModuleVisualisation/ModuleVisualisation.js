@@ -70,6 +70,8 @@ function ModuleVisualisation() {
     }
 
     fetchDevices();
+    updateUserPoints()
+
   }, []);
 
   const fetchDevices = async () => {
@@ -77,13 +79,7 @@ function ModuleVisualisation() {
       const response = await fetch(API_URL, { credentials: 'include' });
       if (!response.ok) throw new Error('Erreur lors de la récupération des appareils');
       const data = await response.json();
-  
-      if (data.user) {
-        const updatedUser = { ...data.user };
-        setUser(updatedUser);
-        localStorage.setItem('user', JSON.stringify(updatedUser));
-      }
-  
+
       setConnectedDevices(data.devices);
       setLoading(false);
     } catch (err) {
@@ -92,6 +88,35 @@ function ModuleVisualisation() {
     }
   };
   
+  const updateUserPoints = async () => {
+    // Ne faire la mise à jour que si l'utilisateur est déjà connecté
+    if (user) {
+      try {
+        const response = await fetch('http://localhost:3020/plateforme/smart-home-project/api/User-manager.php', {
+          credentials: 'include'
+        });
+        if (response.ok) {
+          const data = await response.json();
+          if (data.users && data.users.length > 0) {
+            // On met à jour uniquement les points et on conserve le reste des données
+            const updatedUser = { 
+              ...user, 
+              points: data.users[0].points 
+            };
+            setUser(updatedUser);
+            localStorage.setItem("user", JSON.stringify(updatedUser));
+          }
+        }
+      } catch (error) {
+        console.error('Erreur mise à jour points:', error);
+        // Ne pas déconnecter en cas d'erreur
+      }
+    }
+  };
+
+  useEffect(() => {
+      updateUserPoints();
+    }, []);
 
   const navigate = useNavigate(); // Ajout de la navigation
   const [isNavigating, setIsNavigating] = useState(false); // Nouvel état pour la navigation
@@ -205,7 +230,7 @@ function ModuleVisualisation() {
       default:
         break;
     }
-    
+    updateUserPoints();
     setSelectedDevice(deviceWithDetails);
   };
 
@@ -216,6 +241,8 @@ function ModuleVisualisation() {
       ...newDevice,
       [name]: value
     });
+    updateUserPoints();
+
   };
   
   // Fonction pour ajouter un nouvel appareil
@@ -225,7 +252,8 @@ function ModuleVisualisation() {
       id: connectedDevices.length + 1,
       ...newDevice
     };
-    
+    updateUserPoints();
+
     // Ajout de propriétés spécifiques selon le type d'appareil
     switch(newDevice.type) {
       case 'thermostat':
@@ -273,7 +301,8 @@ function ModuleVisualisation() {
     
     // Ajout de l'appareil à la liste
     setConnectedDevices([...connectedDevices, deviceToAdd]);
-    
+    updateUserPoints();
+
     // Réinitialisation et fermeture de la modal
     setNewDevice({
       name: '',
@@ -290,6 +319,8 @@ function ModuleVisualisation() {
   // Fonction pour ouvrir la modal de configuration d'un appareil
   const handleOpenConfigModal = (device) => {
     setDeviceToEdit({...device});
+    updateUserPoints();
+
     setShowConfigModal(true);
   };
   
@@ -300,6 +331,8 @@ function ModuleVisualisation() {
       ...deviceToEdit,
       [name]: value
     });
+    updateUserPoints();
+
   };
   
   // Fonction pour gérer la modification de champs numériques
@@ -309,6 +342,8 @@ function ModuleVisualisation() {
       ...deviceToEdit,
       [name]: Number(value)
     });
+    updateUserPoints();
+
   };
   
   // Fonction pour enregistrer les modifications d'un appareil
@@ -317,6 +352,8 @@ function ModuleVisualisation() {
     const updatedDevices = connectedDevices.map(device => 
       device.id === deviceToEdit.id ? deviceToEdit : device
     );
+    updateUserPoints();
+
     
     setConnectedDevices(updatedDevices);
     

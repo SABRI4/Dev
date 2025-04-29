@@ -48,7 +48,7 @@ function App() {
             )}
 
             {/* pour les complexes avancés */}
-            {user.role === 'complexe' && (
+            {user.role === 'complexe' && user.niveau == 'avancé' && (
               <>
                 <Route
                   path="/module-visualisation"
@@ -67,10 +67,11 @@ function App() {
                   }
                 />
               </>
+              
             )}
 
             {/* pour les admins experts */}
-            {user.role === 'admin'  && (
+            {user.role === 'admin' && user.niveau == 'expert' && (
               <>
                 <Route
                   path="/module-visualisation"

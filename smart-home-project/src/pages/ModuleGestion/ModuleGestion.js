@@ -214,6 +214,7 @@ function ModuleGestion() {
         setUser(JSON.parse(storedUser));
       }
       fetchDevices();
+      updateUserPoints()
     }, []);
     
 
@@ -237,23 +238,14 @@ function ModuleGestion() {
   const API_BASE = 'http://localhost:3020/plateforme/smart-home-project/api/device.php';
   const fetchDevices = async () => {
     try {
-      const res = await fetch(API_BASE, { credentials: 'include' });
-      if (!res.ok) throw new Error('Erreur API');
-  
-      const data = await res.json();
-  
-      // Mettre à jour l'utilisateur
-      if (data.user) {
-        const updatedUser = { ...data.user };
-        setUser(updatedUser);
-        localStorage.setItem('user', JSON.stringify(updatedUser));
-      }
-  
+      const response = await fetch(API_BASE, { credentials: 'include' });
+      if (!response.ok) throw new Error('Erreur lors de la récupération des appareils');
+      const data = await response.json();
+
       setConnectedDevices(data.devices);
       setLoading(false);
-  
-    } catch (e) {
-      setError(e.message);
+    } catch (err) {
+      setError(err.message);
       setLoading(false);
     }
   };
@@ -420,6 +412,36 @@ function ModuleGestion() {
     });
   };
   
+
+  const updateUserPoints = async () => {
+    // Ne faire la mise à jour que si l'utilisateur est déjà connecté
+    if (user) {
+      try {
+        const response = await fetch('http://localhost:3020/plateforme/smart-home-project/api/User-manager.php', {
+          credentials: 'include'
+        });
+        if (response.ok) {
+          const data = await response.json();
+          if (data.users && data.users.length > 0) {
+            const updatedUser = { 
+              ...user, 
+              points: data.users[0].points 
+            };
+            setUser(updatedUser);
+            localStorage.setItem("user", JSON.stringify(updatedUser));
+          }
+        }
+      } catch (error) {
+        console.error('Erreur mise à jour points:', error);
+        // Ne pas déconnecter en cas d'erreur
+      }
+    }
+  };
+
+   useEffect(() => {
+        updateUserPoints();
+      }, []);
+
   // Fonction pour ajouter un nouvel appareil
   const addDevice = async (payload) => {
     const response = await fetch(API_BASE, {
@@ -453,7 +475,7 @@ function ModuleGestion() {
       const response = await addDevice(deviceToAdd);
       if (response.status === 'success') {
         await fetchDevices(); // recharge
-        
+        await updateUserPoints();
         // On garde les champs spécifiques dans l'interface
         const deviceWithDetails = {
           ...deviceToAdd,
@@ -513,6 +535,7 @@ function ModuleGestion() {
   // Fonction pour ouvrir la modal de configuration d'un appareil
   const handleOpenConfigModal = (device) => {
     setDeviceToEdit({...device});
+    updateUserPoints();
     setShowConfigModal(true);
   };
   
@@ -523,6 +546,8 @@ function ModuleGestion() {
       ...deviceToEdit,
       [name]: value
     });
+    updateUserPoints();
+
   };
   
   // Fonction pour gérer la modification de champs numériques
@@ -532,6 +557,8 @@ function ModuleGestion() {
       ...deviceToEdit,
       [name]: Number(value)
     });
+    updateUserPoints();
+
   };
   
   // Fonction pour enregistrer les modifications d'un appareil
@@ -560,7 +587,7 @@ function ModuleGestion() {
       const response = await updateDevice(deviceToUpdate, selectedDevice.id);
       if (response.status === 'success') {
         await fetchDevices();
-        
+        await updateUserPoints();
         // On garde les champs spécifiques dans l'interface
         const updatedDevice = {
           ...deviceToUpdate,
@@ -626,6 +653,7 @@ function ModuleGestion() {
         if (data.status === "success") {
           alert("Appareil supprimé avec succès !");
           await fetchDevices();
+          await updateUserPoints();
         } else {
           alert("Erreur : " + data.message);
         }
@@ -661,6 +689,7 @@ function ModuleGestion() {
         setShowDeleteConfirmation(false);
         setDeletionSuccess(true);
         await fetchDevices();
+        await updateUserPoints();
       } else {
         alert("Erreur : " + data.message);
       }

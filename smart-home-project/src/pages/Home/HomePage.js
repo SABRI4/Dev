@@ -18,7 +18,15 @@ function HomePage() {
     if (storedUser) {
       setUser(JSON.parse(storedUser));
     }
+
   }, []);
+
+  useEffect(() => {
+    if (user) {
+      updateUserPoints();
+    }
+  }, [user]);
+
 
   useEffect(() => {
     const handleScroll = () => {
@@ -115,6 +123,29 @@ function HomePage() {
     setTimeout(() => {
       navigate('/auth');
     }, 500);
+  };
+
+  const updateUserPoints = async () => {
+    if (user) {
+      try {
+        const response = await fetch('http://localhost:3020/plateforme/smart-home-project/api/User-manager.php', {
+          credentials: 'include'
+        });
+        if (response.ok) {
+          const data = await response.json();
+          if (data.users && data.users.length > 0) {
+            const updatedUser = {
+              ...user,
+              points: data.users[0].points
+            };
+            setUser(updatedUser);
+            localStorage.setItem("user", JSON.stringify(updatedUser));
+          }
+        }
+      } catch (error) {
+        console.error('Erreur lors de la mise à jour des points :', error);
+      }
+    }
   };
 
   const handleModuleNavigation = (modulePath, e) => {

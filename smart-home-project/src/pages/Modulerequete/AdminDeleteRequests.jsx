@@ -49,28 +49,50 @@ const getDeviceIcon = (type) => {
 
 function AdminDeleteRequests() {
   const [requests, setRequests] = useState([]);
+  const [registrationRequests, setRegistrationRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
   const API_URL = 'http://localhost:3020/plateforme/smart-home-project/api/deleteRequest.php';
   const VALIDATE_URL = 'http://localhost:3020/plateforme/smart-home-project/api/validateDelete.php';
+  const REGISTRATION_REQUESTS_URL = 'http://localhost:3020/plateforme/smart-home-project/api/registrationRequests.php';
+  const VALIDATE_REGISTRATION_URL = 'http://localhost:3020/plateforme/smart-home-project/api/validateRegistration.php';
+  const REJECT_REGISTRATION_URL = 'http://localhost:3020/plateforme/smart-home-project/api/rejectRegistration.php';
 
   useEffect(() => {
+    console.log('Chargement des demandes...');
+    
+    // Charger les demandes de suppression
     fetch(API_URL, { credentials: 'include' })
       .then(res => res.json())
       .then(data => {
+        console.log('Réponse des demandes de suppression:', data);
         if (data.status === 'success') {
           setRequests(data.requests);
         } else {
           setError(data.message || 'Erreur inconnue');
         }
-        setLoading(false);
       })
-      .catch(() => {
+      .catch(err => {
+        console.error('Erreur lors du chargement des demandes de suppression:', err);
         setError('Erreur réseau');
-        setLoading(false);
       });
+
+    // Charger les demandes d'inscription
+    fetch(REGISTRATION_REQUESTS_URL, { credentials: 'include' })
+      .then(res => res.json())
+      .then(data => {
+        console.log('Réponse des demandes d\'inscription:', data);
+        if (data.status === 'success') {
+          setRegistrationRequests(data.requests);
+        }
+      })
+      .catch(err => {
+        console.error('Erreur lors du chargement des demandes d\'inscription:', err);
+      });
+
+    setLoading(false);
   }, []);
 
   const handleValidate = async (requestId) => {
@@ -100,7 +122,48 @@ function AdminDeleteRequests() {
       alert('Erreur réseau');
     }
   };
-  
+
+  const handleValidateRegistration = async (requestId) => {
+    try {
+      const res = await fetch(VALIDATE_REGISTRATION_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ request_id: requestId })
+      });
+      const data = await res.json();
+
+      if (data.status === 'success') {
+        setRegistrationRequests(prev => prev.filter(r => r.id !== requestId));
+        alert('Inscription validée avec succès');
+      } else {
+        alert(data.message || 'Erreur lors de la validation');
+      }
+    } catch (err) {
+      alert('Erreur réseau');
+    }
+  };
+
+  const handleRejectRegistration = async (requestId) => {
+    try {
+      const res = await fetch(REJECT_REGISTRATION_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ request_id: requestId })
+      });
+      const data = await res.json();
+
+      if (data.status === 'success') {
+        setRegistrationRequests(prev => prev.filter(r => r.id !== requestId));
+        alert('Inscription rejetée');
+      } else {
+        alert(data.message || 'Erreur lors du rejet');
+      }
+    } catch (err) {
+      alert('Erreur réseau');
+    }
+  };
 
   return (
     <div
@@ -119,7 +182,7 @@ function AdminDeleteRequests() {
         maxWidth: '800px',
         margin: '0 auto'
       }}>
-        <h2 style={{ textAlign: 'center' }}>🛠️ Demandes de suppression</h2>
+        <h2 style={{ textAlign: 'center' }}>🛠️ Gestion des requêtes</h2>
 
         <div style={{ marginBottom: '2rem', textAlign: 'center' }}>
           <button
@@ -143,89 +206,182 @@ function AdminDeleteRequests() {
           <p>Chargement des demandes...</p>
         ) : error ? (
           <p style={{ color: 'red' }}>{error}</p>
-        ) : requests.length === 0 ? (
-          <p style={{ textAlign: 'center' }}>✅ Aucune demande en attente.</p>
         ) : (
-          <ul style={{ listStyle: 'none', padding: 0 }}>
-            {requests.map(req => (
-              <li key={req.id} style={{
-                backgroundColor: 'rgba(255,255,255,0.1)',
-                padding: '1.5rem',
-                borderRadius: '10px',
-                marginBottom: '1rem'
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', marginBottom: '1rem', gap: '1rem' }}>
-                  <div style={{
-                    backgroundColor: '#D35400',
-                    borderRadius: '50%',
-                    width: '50px',
-                    height: '50px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    padding: '5px'
-                  }}>
-                    {getDeviceIcon(req.item_type)}
-                  </div>
-                  <div>
-                    <h3 style={{ margin: '0 0 0.5rem 0' }}>Objet à supprimer:</h3>
-                    <p style={{ margin: '0.2rem 0' }}>
-                      <strong>ID:</strong> {req.item_id}
-                      <span style={{ color: '#bbb' }}> ({req.item_type})</span>
-                    </p>
-                    <p style={{ margin: '0.2rem 0' }}>
-                      <strong>Nom:</strong> {req.item_name}
-                    </p>
-                    <p style={{ margin: '0.2rem 0' }}>
-                      <strong>Pièce:</strong> {req.item_room}
-                    </p>
-                  </div>
-                </div>
+          <>
+            {/* Section des demandes de suppression */}
+            <div style={{ marginBottom: '2rem' }}>
+              <h3 style={{ marginBottom: '1rem' }}>Demandes de suppression</h3>
+              {requests.length === 0 ? (
+                <p style={{ textAlign: 'center' }}>✅ Aucune demande de suppression en attente.</p>
+              ) : (
+                <ul style={{ listStyle: 'none', padding: 0 }}>
+                  {requests.map(req => (
+                    <li key={req.id} style={{
+                      backgroundColor: 'rgba(255,255,255,0.1)',
+                      padding: '1.5rem',
+                      borderRadius: '10px',
+                      marginBottom: '1rem'
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', marginBottom: '1rem', gap: '1rem' }}>
+                        <div style={{
+                          backgroundColor: '#D35400',
+                          borderRadius: '50%',
+                          width: '50px',
+                          height: '50px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          padding: '5px'
+                        }}>
+                          {getDeviceIcon(req.item_type)}
+                        </div>
+                        <div>
+                          <h3 style={{ margin: '0 0 0.5rem 0' }}>Objet à supprimer:</h3>
+                          <p style={{ margin: '0.2rem 0' }}>
+                            <strong>ID:</strong> {req.item_id}
+                            <span style={{ color: '#bbb' }}> ({req.item_type})</span>
+                          </p>
+                          <p style={{ margin: '0.2rem 0' }}>
+                            <strong>Nom:</strong> {req.item_name}
+                          </p>
+                          <p style={{ margin: '0.2rem 0' }}>
+                            <strong>Pièce:</strong> {req.item_room}
+                          </p>
+                        </div>
+                      </div>
 
-                <div style={{
-                  backgroundColor: 'rgba(255,255,255,0.05)',
-                  padding: '1rem',
-                  borderRadius: '8px',
-                  marginBottom: '1rem'
-                }}>
-                  <h3 style={{ margin: '0 0 0.5rem 0' }}>Demandeur:</h3>
-                  <p style={{ margin: '0.2rem 0' }}>
-                    <strong>ID:</strong> {req.user_id}
-                  </p>
-                  <p style={{ margin: '0.2rem 0' }}>
-                    <strong>Nom complet:</strong> {req.user_firstname} {req.user_lastname}
-                  </p>
-                  <p style={{ margin: '0.2rem 0' }}>
-                    <strong>Nom d'utilisateur:</strong> {req.username}
-                  </p>
-                  <p style={{ margin: '0.2rem 0' }}>
-                    <strong>Rôle:</strong> {req.user_role} 
-                    <span style={{ color: '#bbb' }}> (Niveau {req.user_level})</span>
-                  </p>
-                </div>
+                      <div style={{
+                        backgroundColor: 'rgba(255,255,255,0.05)',
+                        padding: '1rem',
+                        borderRadius: '8px',
+                        marginBottom: '1rem'
+                      }}>
+                        <h3 style={{ margin: '0 0 0.5rem 0' }}>Demandeur:</h3>
+                        <p style={{ margin: '0.2rem 0' }}>
+                          <strong>ID:</strong> {req.user_id}
+                        </p>
+                        <p style={{ margin: '0.2rem 0' }}>
+                          <strong>Nom complet:</strong> {req.user_firstname} {req.user_lastname}
+                        </p>
+                        <p style={{ margin: '0.2rem 0' }}>
+                          <strong>Nom d'utilisateur:</strong> {req.username}
+                        </p>
+                        <p style={{ margin: '0.2rem 0' }}>
+                          <strong>Rôle:</strong> {req.user_role} 
+                          <span style={{ color: '#bbb' }}> (Niveau {req.user_level})</span>
+                        </p>
+                      </div>
 
-                <button
-                  onClick={() => handleValidate(req.id)}
-                  style={{
-                    marginTop: '0.5rem',
-                    backgroundColor: '#E74C3C',
-                    color: 'white',
-                    padding: '8px 15px',
-                    border: 'none',
-                    borderRadius: '5px',
-                    cursor: 'pointer',
-                    fontWeight: 'bold',
-                    width: '100%',
-                    transition: 'all 0.3s ease'
-                  }}
-                  onMouseEnter={(e) => e.target.style.backgroundColor = '#C0392B'}
-                  onMouseLeave={(e) => e.target.style.backgroundColor = '#E74C3C'}
-                >
-                  🗑️ Valider la suppression
-                </button>
-              </li>
-            ))}
-          </ul>
+                      <button
+                        onClick={() => handleValidate(req.id)}
+                        style={{
+                          marginTop: '0.5rem',
+                          backgroundColor: '#E74C3C',
+                          color: 'white',
+                          padding: '8px 15px',
+                          border: 'none',
+                          borderRadius: '5px',
+                          cursor: 'pointer',
+                          fontWeight: 'bold',
+                          width: '100%',
+                          transition: 'all 0.3s ease'
+                        }}
+                        onMouseEnter={(e) => e.target.style.backgroundColor = '#C0392B'}
+                        onMouseLeave={(e) => e.target.style.backgroundColor = '#E74C3C'}
+                      >
+                        🗑️ Valider la suppression
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+
+            {/* Section des demandes d'inscription */}
+            <div>
+              <h3 style={{ marginBottom: '1rem' }}>Demandes d'inscription</h3>
+              {registrationRequests.length === 0 ? (
+                <p style={{ textAlign: 'center' }}>✅ Aucune demande d'inscription en attente.</p>
+              ) : (
+                <ul style={{ listStyle: 'none', padding: 0 }}>
+                  {registrationRequests.map(request => (
+                    <li key={request.id} style={{
+                      backgroundColor: 'rgba(255,255,255,0.1)',
+                      padding: '1.5rem',
+                      borderRadius: '10px',
+                      marginBottom: '1rem'
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', marginBottom: '1rem', gap: '1rem' }}>
+                        <div style={{
+                          backgroundColor: '#27AE60',
+                          borderRadius: '50%',
+                          width: '50px',
+                          height: '50px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          padding: '5px'
+                        }}>
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="40" height="40" fill="#FFFFFF">
+                            <path d="M12,4A4,4,0,1,0,16,8,4,4,0,0,0,12,4Zm0,6A2,2,0,1,1,14,8,2,2,0,0,1,12,10Zm8,10a1,1,0,0,1-1,1H5a1,1,0,0,1-1-1V18a6,6,0,0,1,6-6h4A6,6,0,0,1,20,18Z"/>
+                          </svg>
+                        </div>
+                        <div>
+                          <h3 style={{ margin: '0 0 0.5rem 0' }}>Nouvelle demande d'inscription</h3>
+                          <p style={{ margin: '0.2rem 0' }}>
+                            <strong>Nom:</strong> {request.nom} {request.prenom}
+                          </p>
+                          <p style={{ margin: '0.2rem 0' }}>
+                            <strong>Email:</strong> {request.email}
+                          </p>
+                          <p style={{ margin: '0.2rem 0' }}>
+                            <strong>Nom d'utilisateur:</strong> {request.username}
+                          </p>
+                          <p style={{ margin: '0.2rem 0' }}>
+                            <strong>Type de membre:</strong> {request.member_type}
+                          </p>
+                          <p style={{ margin: '0.2rem 0' }}>
+                            <strong>Date de naissance:</strong> {request.birthdate}
+                          </p>
+                          <p style={{ margin: '0.2rem 0' }}>
+                            <strong>Genre:</strong> {request.gender}
+                          </p>
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
+                        <button
+                          onClick={() => handleValidateRegistration(request.id)}
+                          style={{
+                            padding: '0.5rem 1rem',
+                            backgroundColor: '#27AE60',
+                            border: 'none',
+                            borderRadius: '5px',
+                            color: 'white',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          Valider
+                        </button>
+                        <button
+                          onClick={() => handleRejectRegistration(request.id)}
+                          style={{
+                            padding: '0.5rem 1rem',
+                            backgroundColor: '#E74C3C',
+                            border: 'none',
+                            borderRadius: '5px',
+                            color: 'white',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          Rejeter
+                        </button>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </>
         )}
       </div>
     </div>
