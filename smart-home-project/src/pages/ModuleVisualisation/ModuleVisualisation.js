@@ -167,7 +167,46 @@ function ModuleVisualisation() {
 
   // Fonction pour ouvrir les détails d'un appareil
   const handleDeviceDetails = (device) => {
-    setSelectedDevice(device);
+    // Création d'un objet avec les propriétés de base et spécifiques au type
+    const deviceWithDetails = {
+      ...device
+    };
+    
+    // Ajout de propriétés spécifiques selon le type d'appareil
+    switch(device.type) {
+      case 'thermostat':
+        deviceWithDetails.temperature = device.temperature || 20;
+        deviceWithDetails.targetTemperature = device.targetTemperature || 22;
+        break;
+      case 'climatiseur':
+        deviceWithDetails.temperature = device.temperature || 20;
+        deviceWithDetails.currentMode = device.currentMode || 'Veille';
+        break;
+      case 'volets':
+        deviceWithDetails.openPercentage = device.openPercentage || 0;
+        deviceWithDetails.currentPosition = device.currentPosition || 'Fermés';
+        break;
+      case 'lumière':
+        deviceWithDetails.brightness = device.brightness || 50;
+        deviceWithDetails.colorTemperature = device.colorTemperature || 3000;
+        break;
+      case 'sécurité':
+        deviceWithDetails.motionSensitivity = device.motionSensitivity || 'Moyen';
+        deviceWithDetails.movementDetected = device.movementDetected || false;
+        break;
+      case 'météo':
+        deviceWithDetails.temperature = device.temperature || 20;
+        if (device.name.toLowerCase().includes('station')) {
+          deviceWithDetails.humidity = device.humidity || 50;
+          deviceWithDetails.windSpeed = device.windSpeed || 0;
+          deviceWithDetails.precipitation = device.precipitation || 0;
+        }
+        break;
+      default:
+        break;
+    }
+    
+    setSelectedDevice(deviceWithDetails);
   };
 
   // Fonction pour gérer le changement des champs du nouvel appareil
@@ -499,22 +538,44 @@ function ModuleVisualisation() {
   <h1 style={{ margin: 0, fontSize: '1.5rem', color: '#D35400' }}>Module Visualisation</h1>
   {user ? (
     <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-      <div style={{ display: 'flex', alignItems: 'center' }}>
+      <Link
+        to="/profile"
+        style={{
+          backgroundColor: '#fff',
+          borderRadius: '10px',
+          padding: '0.4rem 0.8rem',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px',
+          boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+          textDecoration: 'none',
+          transition: 'all 0.3s ease'
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.transform = 'scale(1.05)';
+          e.currentTarget.style.boxShadow = '0 6px 8px rgba(0,0,0,0.2)';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.transform = 'scale(1)';
+          e.currentTarget.style.boxShadow = '0 4px 6px rgba(0,0,0,0.1)';
+        }}
+      >
         <img
-          src={user.photo}
+          src={user.photo || "/default-avatar.png"}
           alt="Profil"
           style={{
             height: '40px',
             width: '40px',
             borderRadius: '50%',
             objectFit: 'cover',
-            marginRight: '8px'
+            border: '2px solid #D35400'
           }}
         />
-        <span style={{ color: '#D35400', fontWeight: 'bold' }}>
-          {user.username} ({user.role}) - {user.points} pts
-        </span>
-      </div>
+        <div style={{ display: 'flex', flexDirection: 'column', fontSize: '0.85rem' }}>
+          <span style={{ color: '#D35400', fontWeight: 'bold' }}>{user.username}</span>
+          <span style={{ color: '#666' }}>{user.role} – {user.points} pts</span>
+        </div>
+      </Link>
       <button
         onClick={() => {
           localStorage.removeItem("user");
@@ -522,7 +583,7 @@ function ModuleVisualisation() {
         }}
         style={{
           color: '#D35400',
-          padding: '0.4rem 1rem',
+          padding: '0.4rem 0.8rem',
           borderRadius: '5px',
           border: '2px solid #D35400',
           backgroundColor: 'transparent',
@@ -538,7 +599,7 @@ function ModuleVisualisation() {
           e.currentTarget.style.color = '#D35400';
         }}
       >
-        Se déconnecter
+        Déconnexion
       </button>
     </div>
   ) : (
@@ -551,7 +612,6 @@ function ModuleVisualisation() {
         border: '2px solid #D35400',
         textDecoration: 'none',
         fontWeight: 'bold',
-        transition: 'all 0.3s ease',
         backgroundColor: 'transparent',
         whiteSpace: 'nowrap',
         fontSize: '0.9rem',
@@ -787,36 +847,12 @@ function ModuleVisualisation() {
 
               {selectedDevice.type === 'sécurité' && (
                 <>
-                  {selectedDevice.name.includes('Présence') && (
-                    <>
-                      <div style={{ marginBottom: '1rem' }}>
-                        <strong>Mouvement détecté :</strong> {selectedDevice.movementDetected ? 'Oui' : 'Non'}
-                      </div>
-                      <div style={{ marginBottom: '1rem' }}>
-                        <strong>Dernier mouvement :</strong> {selectedDevice.lastMovement}
-                      </div>
-                    </>
-                  )}
-                  {selectedDevice.name.includes('Caméra') && (
-                    <>
-                      <div style={{ marginBottom: '1rem' }}>
-                        <strong>Statut d'enregistrement :</strong> {selectedDevice.recordingStatus}
-                      </div>
-                      <div style={{ marginBottom: '1rem' }}>
-                        <strong>Sensibilité au mouvement :</strong> {selectedDevice.motionSensitivity}
-                      </div>
-                    </>
-                  )}
-                  {selectedDevice.name.includes('Fumée') && (
-                    <>
-                      <div style={{ marginBottom: '1rem' }}>
-                        <strong>Fumée détectée :</strong> {selectedDevice.smokeDetected ? 'Oui' : 'Non'}
-                      </div>
-                      <div style={{ marginBottom: '1rem' }}>
-                        <strong>Niveau de monoxyde de carbone :</strong> {selectedDevice.carbonMonoxideLevel}
-                      </div>
-                    </>
-                  )}
+                 <div style={{ marginBottom: '1rem' }}>
+                    <strong>Sensibilité au mouvement :</strong> {selectedDevice.motionSensitivity}
+                  </div>
+                  <div style={{ marginBottom: '1rem' }}>
+                    <strong>Mouvement détecté :</strong> {selectedDevice.movementDetected ? 'Oui' : 'Non'}
+                  </div>
                 </>
               )}
 

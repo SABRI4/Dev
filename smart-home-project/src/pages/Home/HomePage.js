@@ -59,8 +59,8 @@ function HomePage() {
     },
     ...(user ? [
       ...(((user.role === 'simple' && (user.niveau === 'debutant' || user.niveau === 'intermediaire')) || 
-           (user.role === 'complexe' && user.niveau === 'avance') || 
-           (user.role === 'admin' && user.niveau === 'expert')) ? 
+           (user.role === 'complexe') || 
+           (user.role === 'admin')) ? 
         [{ 
           name: "Module Visualisation", 
           description: "Visualisation des données", 
@@ -72,8 +72,8 @@ function HomePage() {
             </svg>
           )
         }] : []),
-      ...((user.role === 'complexe' && user.niveau === 'avance') || 
-          (user.role === 'admin' && user.niveau === 'expert') ? 
+      ...((user.role === 'complexe') || 
+          (user.role === 'admin') ? 
         [{ 
           name: "Module Gestion", 
           description: "Gestion des objets connectés", 
@@ -84,7 +84,7 @@ function HomePage() {
             </svg>
           )
         }] : []),
-      ...(user.role === 'admin' && user.niveau === 'expert' ? 
+      ...(user.role === 'admin' ? 
         [
           { 
             name: "Module Administration", 

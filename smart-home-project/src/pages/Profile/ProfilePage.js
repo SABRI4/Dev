@@ -22,6 +22,13 @@ function ProfilePage() {
   const [previewURL, setPreviewURL] = useState('');
   const [isNavigating, setIsNavigating] = useState(false);
   const [error, setError] = useState('');
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  });
+  const [passwordError, setPasswordError] = useState('');
 
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
@@ -152,6 +159,46 @@ function ProfilePage() {
     setTimeout(() => {
       navigate('/');
     }, 500);
+  };
+
+  const handlePasswordChange = (e) => {
+    const { name, value } = e.target;
+    setPasswordData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handlePasswordSubmit = async (e) => {
+    e.preventDefault();
+    setPasswordError('');
+
+    try {
+      const response = await fetch('http://localhost:3020/plateforme/smart-home-project/api/change_password.php', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify(passwordData)
+      });
+
+      const data = await response.json();
+
+      if (data.status === 'success') {
+        setShowPasswordModal(false);
+        setPasswordData({
+          currentPassword: '',
+          newPassword: '',
+          confirmPassword: ''
+        });
+        alert('Mot de passe modifié avec succès');
+      } else {
+        setPasswordError(data.message);
+      }
+    } catch (error) {
+      setPasswordError('Erreur lors de la modification du mot de passe');
+    }
   };
 
   const pageStyle = {
@@ -506,34 +553,93 @@ function ProfilePage() {
               marginTop: '2.5rem' 
             }}>
               {!isEditing ? (
-                <button
-                  type="button"
-                  onClick={() => setIsEditing(true)}
-                  style={{
-                    padding: '12px 24px',
-                    backgroundColor: '#D35400',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '8px',
-                    cursor: 'pointer',
-                    fontSize: '1rem',
-                    fontWeight: 'bold',
-                    transition: 'all 0.3s ease',
-                    boxShadow: '0 2px 5px rgba(0,0,0,0.1)'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = '#AF4600';
-                    e.currentTarget.style.transform = 'translateY(-2px)';
-                    e.currentTarget.style.boxShadow = '0 4px 8px rgba(0,0,0,0.2)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = '#D35400';
-                    e.currentTarget.style.transform = 'translateY(0)';
-                    e.currentTarget.style.boxShadow = '0 2px 5px rgba(0,0,0,0.1)';
-                  }}
-                >
-                  Modifier le profil
-                </button>
+                <div style={{ display: 'flex', justifyContent: 'center', gap: '1.5rem' }}>
+                  <button
+                    type="button"
+                    onClick={() => setIsEditing(true)}
+                    style={{
+                      padding: '12px 24px',
+                      backgroundColor: '#D35400',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      fontSize: '1rem',
+                      fontWeight: 'bold',
+                      transition: 'all 0.3s ease',
+                      boxShadow: '0 2px 5px rgba(0,0,0,0.1)'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = '#AF4600';
+                      e.currentTarget.style.transform = 'translateY(-2px)';
+                      e.currentTarget.style.boxShadow = '0 4px 8px rgba(0,0,0,0.2)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = '#D35400';
+                      e.currentTarget.style.transform = 'translateY(0)';
+                      e.currentTarget.style.boxShadow = '0 2px 5px rgba(0,0,0,0.1)';
+                    }}
+                  >
+                    Modifier le profil
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowPasswordModal(true)}
+                    style={{
+                      padding: '12px 24px',
+                      backgroundColor: '#D35400',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      fontSize: '1rem',
+                      fontWeight: 'bold',
+                      transition: 'all 0.3s ease',
+                      boxShadow: '0 2px 5px rgba(0,0,0,0.1)'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = '#AF4600';
+                      e.currentTarget.style.transform = 'translateY(-2px)';
+                      e.currentTarget.style.boxShadow = '0 4px 8px rgba(0,0,0,0.2)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = '#D35400';
+                      e.currentTarget.style.transform = 'translateY(0)';
+                      e.currentTarget.style.boxShadow = '0 2px 5px rgba(0,0,0,0.1)';
+                    }}
+                  >
+                    Changer le mot de passe
+                  </button>
+                  <Link
+                    to="/users"
+                    style={{
+                      padding: '12px 24px',
+                      backgroundColor: '#D35400',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      fontSize: '1rem',
+                      fontWeight: 'bold',
+                      transition: 'all 0.3s ease',
+                      boxShadow: '0 2px 5px rgba(0,0,0,0.1)',
+                      textDecoration: 'none',
+                      display: 'inline-block'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = '#AF4600';
+                      e.currentTarget.style.transform = 'translateY(-2px)';
+                      e.currentTarget.style.boxShadow = '0 4px 8px rgba(0,0,0,0.2)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = '#D35400';
+                      e.currentTarget.style.transform = 'translateY(0)';
+                      e.currentTarget.style.boxShadow = '0 2px 5px rgba(0,0,0,0.1)';
+                    }}
+                  >
+                    Voir les utilisateurs
+                  </Link>
+                </div>
               ) : (
                 <div style={{ display: 'flex', justifyContent: 'center', gap: '1.5rem' }}>
                   <button
@@ -609,6 +715,127 @@ function ProfilePage() {
               )}
             </div>
           </form>
+        )}
+
+        {/* Modal de changement de mot de passe */}
+        {showPasswordModal && (
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            zIndex: 1000
+          }}>
+            <div style={{
+              backgroundColor: 'white',
+              padding: '2rem',
+              borderRadius: '10px',
+              width: '90%',
+              maxWidth: '500px'
+            }}>
+              <h2 style={{ marginBottom: '1.5rem', color: '#D35400' }}>Changer le mot de passe</h2>
+              
+              <form onSubmit={handlePasswordSubmit}>
+                <div style={{ marginBottom: '1rem' }}>
+                  <label style={{ display: 'block', marginBottom: '0.5rem' }}>
+                    Mot de passe actuel
+                  </label>
+                  <input
+                    type="password"
+                    name="currentPassword"
+                    value={passwordData.currentPassword}
+                    onChange={handlePasswordChange}
+                    style={{
+                      width: '100%',
+                      padding: '0.5rem',
+                      borderRadius: '5px',
+                      border: '1px solid #ccc'
+                    }}
+                    required
+                  />
+                </div>
+
+                <div style={{ marginBottom: '1rem' }}>
+                  <label style={{ display: 'block', marginBottom: '0.5rem' }}>
+                    Nouveau mot de passe
+                  </label>
+                  <input
+                    type="password"
+                    name="newPassword"
+                    value={passwordData.newPassword}
+                    onChange={handlePasswordChange}
+                    style={{
+                      width: '100%',
+                      padding: '0.5rem',
+                      borderRadius: '5px',
+                      border: '1px solid #ccc'
+                    }}
+                    required
+                  />
+                </div>
+
+                <div style={{ marginBottom: '1rem' }}>
+                  <label style={{ display: 'block', marginBottom: '0.5rem' }}>
+                    Confirmer le nouveau mot de passe
+                  </label>
+                  <input
+                    type="password"
+                    name="confirmPassword"
+                    value={passwordData.confirmPassword}
+                    onChange={handlePasswordChange}
+                    style={{
+                      width: '100%',
+                      padding: '0.5rem',
+                      borderRadius: '5px',
+                      border: '1px solid #ccc'
+                    }}
+                    required
+                  />
+                </div>
+
+                {passwordError && (
+                  <div style={{ color: 'red', marginBottom: '1rem' }}>
+                    {passwordError}
+                  </div>
+                )}
+
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
+                  <button
+                    type="button"
+                    onClick={() => setShowPasswordModal(false)}
+                    style={{
+                      backgroundColor: '#999',
+                      color: 'white',
+                      border: 'none',
+                      padding: '0.5rem 1rem',
+                      borderRadius: '5px',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Annuler
+                  </button>
+                  <button
+                    type="submit"
+                    style={{
+                      backgroundColor: '#D35400',
+                      color: 'white',
+                      border: 'none',
+                      padding: '0.5rem 1rem',
+                      borderRadius: '5px',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Modifier
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
         )}
       </div>
     </div>

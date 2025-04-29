@@ -16,13 +16,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit();
 }
 
-require_once 'connect.php';
+require_once 'connect.php'; 
 
 $method = $_SERVER['REQUEST_METHOD'];
 
 switch ($method) {
     case 'GET':
-        // Liste tous les utilisateurs
         try {
             $sql = "
                 SELECT
@@ -43,126 +42,173 @@ switch ($method) {
                 FROM users
             ";
             $stmt  = $pdo->query($sql);
-            $users = $stmt->fetchAll();
+            $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
             respond(true, ['users' => $users]);
         } catch (PDOException $e) {
             respond(false, ['message' => 'Erreur lors de la récupération des utilisateurs.'], 500);
         }
         break;
 
-    case 'POST':
-        $username  = $_POST['username']  ?? null;
-        $password  = $_POST['password']  ?? null;
-        $email     = $_POST['email']     ?? null;
-        $role      = $_POST['role']      ?? null;
-        $points    = $_POST['points']    ?? 0;
-        $nom       = $_POST['nom']       ?? '';
-        $prenom    = $_POST['prenom']    ?? '';
-        $niveau    = $_POST['niveau']    ?? null;
-        $birthdate = $_POST['birthdate'] ?? null;
-        $gender    = $_POST['gender']    ?? null;
-        $age       = $_POST['age']       ?? null;
+        case 'POST':
+          // Récupération des champs envoyés en form-data
+          $username    = $_POST['username']    ?? null;
+          $password    = $_POST['password']    ?? null;
+          $email       = $_POST['email']       ?? null;
+          $role        = $_POST['role']        ?? null;
+          $points      = isset($_POST['points']) ? (int)$_POST['points'] : 0;
+          $nom         = $_POST['nom']         ?? '';
+          $prenom      = $_POST['prenom']      ?? '';
+          $niveau      = $_POST['niveau']      ?? null;
+          $birthdate   = $_POST['birthdate']   ?? null;
+          $gender      = $_POST['gender']      ?? null;
+          $age         = isset($_POST['age'])   ? (int)$_POST['age'] : null;
+          $member_type = $_POST['memberType']   ?? '';
+      
+          // Photo (inchangée)
+          if (!empty($_FILES['photo']) && $_FILES['photo']['error'] === UPLOAD_ERR_OK) {
+              // … upload …
+              $photoPath = "uploads/$filename";
+          } else {
+              $photoPath = 'uploads/default-avatar.jpg';
+          }
+      
+          // Validation basique (note le $ devant password)
+          if (
+              !$username ||
+              !$password ||
+              !$email ||
+              !$role ||
+              $points === null ||
+              !$niveau ||
+              !$birthdate ||
+              !$gender ||
+              $age === null
+          ) {
+              respond(false, ['message' => 'Merci de remplir tous les champs !'], 400);
+          }
+      
+          try {
+              // On hache le mot de passe
+              $hashed = password_hash($password, PASSWORD_DEFAULT);
+      
+              $stmt = $pdo->prepare("
+                  INSERT INTO users
+                    (username, password, nom, prenom, email, photo, role, points, niveau, birthdate, gender, age, member_type)
+                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+              ");
+              $stmt->execute([
+                  $username,     
+                  $hashed,       
+                  $nom,         
+                  $prenom,       
+                  $email,       
+                  $photoPath,   
+                  $role,         
+                  $points,       
+                  $niveau,       
+                  $birthdate,   
+                  $gender,       
+                  $age,          
+                  $member_type  
+              ]);
+      
+              respond(true, ['message' => 'Utilisateur ajouté avec succès.']);
+          } catch (PDOException $e) {
+              respond(false, ['message' => "Erreur lors de l'ajout de l'utilisateur."], 500);
+          }
+          break;
+      
 
-        if (!empty($_FILES['photo']) && $_FILES['photo']['error'] === UPLOAD_ERR_OK) {
-            $uploadDir   = __DIR__ . '/uploads/';
-            $tmpName     = $_FILES['photo']['tmp_name'];
-            $filename    = uniqid('avatar_') . '-' . basename($_FILES['photo']['name']);
-            $destination = $uploadDir . $filename;
-            move_uploaded_file($tmpName, $destination);
-            $photoPath   = "uploads/$filename";
-        } else {
-            $photoPath = 'uploads/default-avatar.jpg';
-        }
-
-        // Validation basique
-        if (
-            !$username  ||
-            !$password  ||
-            !$email     ||
-            !$role      ||
-            $points === null ||
-            !$niveau    ||
-            !$birthdate ||
-            !$gender    ||
-            $age === null
-        ) {
-            respond(false, ['message' => 'Merci de remplir tous les champs !'], 400);
-        }
-
-        try {
-            $hashed = password_hash($password, PASSWORD_DEFAULT);
-
-            $stmt = $pdo->prepare("
-                INSERT INTO users
-                  (username, password, nom, prenom, email, photo, role, points, niveau, birthdate, gender, age,  memberType)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ");
-            $stmt->execute([
+        case 'PUT':
+            $data = json_decode(file_get_contents("php://input"), true);
+        
+            // 1) Mise à jour **seulement** du mot de passe
+            if (isset($data['id'], $data['newPassword'])) {
+              try {
+                $hashed = password_hash($data['newPassword'], PASSWORD_DEFAULT);
+                $stmt = $pdo->prepare("UPDATE users SET password = ? WHERE id = ?");
+                $stmt->execute([$hashed, $data['id']]);
+                respond(true, ['message' => 'Mot de passe mis à jour.']);
+              } catch (PDOException $e) {
+                respond(false, ['message' => 'Erreur lors de la mise à jour du mot de passe.'], 500);
+              }
+              break;
+            }
+        
+            $id           = $data['id']           ?? null;
+            $username     = $data['username']     ?? null;
+            $email        = $data['email']        ?? null;
+            $role         = $data['role']         ?? null;
+            $nom          = $data['nom']          ?? '';
+            $prenom       = $data['prenom']       ?? '';
+            $points       = isset($data['points']) ? (int)$data['points'] : 0;
+            $niveau       = $data['niveau']       ?? null;
+            $birthdate    = $data['birthdate']    ?? null;
+            $gender       = $data['gender']       ?? null;
+            $age          = isset($data['age']) ? (int)$data['age'] : null;
+            $member_type  = $data['memberType']   ?? ($data['member_type'] ?? '');
+        
+            if (!$id || !$username || !$email || !$role) {
+              respond(false, ['message' => 'ID, username, email et role sont requis.'], 400);
+            }
+        
+            try {
+              $sql = "
+                UPDATE users SET
+                  username     = ?,
+                  email        = ?,
+                  role         = ?,
+                  nom          = ?,
+                  prenom       = ?,
+                  points       = ?,
+                  niveau       = ?,
+                  birthdate    = ?,
+                  gender       = ?,
+                  age          = ?,
+                  member_type  = ?
+                WHERE id       = ?
+              ";
+              $stmt = $pdo->prepare($sql);
+              $stmt->execute([
                 $username,
-                $hashed,
+                $email,
+                $role,
                 $nom,
                 $prenom,
-                $email,
-                $photoPath,
-                $role,
                 $points,
                 $niveau,
                 $birthdate,
                 $gender,
                 $age,
-                $memberType
-            ]);
-
-            respond(true, ['message' => 'Utilisateur ajouté avec succès.']);
-        } catch (PDOException $e) {
-            respond(false, ['message' => 'Erreur lors de l\'ajout de l\'utilisateur.'], 500);
-        }
-        break;
-
-        case 'PUT':
-            $data = json_decode(file_get_contents("php://input"), true);
+                $member_type,
+                $id
+              ]);
         
-            // On ne force plus 'niveau' ni 'age' ici
-            if (
-                !isset($data['username'], $data['email'], $data['role'])
-            ) {
-                respond(false, ['message' => 'ID, username, email et role sont requis.'], 400);
-            }
+              // On renvoie l'utilisateur mis à jour
+              $sel = $pdo->prepare("SELECT * FROM users WHERE id = ?");
+              $sel->execute([$id]);
+              $user = $sel->fetch(PDO::FETCH_ASSOC);
         
-            // Puis dans l'UPDATE, on ne touche que ce qu'on a vraiment
-            try {
-                $sql = "
-                    UPDATE users
-                       SET username  = ?,
-                           email     = ?,
-                           role      = ?
-                     WHERE id        = ?
-                ";
-                $stmt = $pdo->prepare($sql);
-                $stmt->execute([
-                    $data['username'],
-                    $data['email'],
-                    $data['role'],
-                    $data['id']
-                ]);
-                respond(true, ['message' => 'Utilisateur mis à jour.']);
+              respond(true, [
+                'message' => 'Utilisateur mis à jour.',
+                'user'    => $user
+              ]);
             } catch (PDOException $e) {
-                respond(false, ['message' => 'Erreur à la mise à jour.'], 500);
+              respond(false, ['message' => 'Erreur lors de la mise à jour.'], 500);
             }
             break;
-        
 
     case 'DELETE':
-        // Supprimer un utilisateur
         parse_str(file_get_contents("php://input"), $data);
+        $id = $data['id'] ?? null;
 
-        if (!isset($data['id'])) {
+        if (!$id) {
             respond(false, ['message' => 'ID utilisateur manquant.'], 400);
         }
 
         try {
             $stmt = $pdo->prepare("DELETE FROM users WHERE id = ?");
-            $stmt->execute([$data['id']]);
+            $stmt->execute([$id]);
             respond(true, ['message' => 'Utilisateur supprimé avec succès.']);
         } catch (PDOException $e) {
             respond(false, ['message' => 'Erreur lors de la suppression de l\'utilisateur.'], 500);

@@ -10,11 +10,12 @@ import ModuleGestion from '../ModuleGestion/ModuleGestion.js';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
-const ModuleAdministration = () => {
+const ModuleAdministration = ({validationMode, onToggleValidation }) => {
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
   const API_URL = '  http://localhost:3020/Plateforme/smart-home-project/api/User-manager.php';
   const DEVICES_API = 'http://localhost:3020/Plateforme/smart-home-project/api/device.php';
+  const CATEGORY_API = 'http://localhost:3020/Plateforme/smart-home-project/api/category.php';
   const [selectedBackup, setSelectedBackup] = useState('');
 
 
@@ -33,7 +34,8 @@ const ModuleAdministration = () => {
     niveau: '',
     birthdate: '',
     gender: '',
-    age: null
+    age: null,
+    memberType : ''
   };
   
   const [newUser,   setNewUser]   = useState(initialNewUserState);
@@ -64,6 +66,7 @@ const ModuleAdministration = () => {
   const [hoveredPanel, setHoveredPanel] = useState(null);
   const [backups, setBackups] = useState([]);
 
+
   useEffect(() => {
     fetch('http://localhost:3020/Plateforme/smart-home-project/api/Backup.php?action=list', {
       credentials: 'include'
@@ -76,8 +79,6 @@ const ModuleAdministration = () => {
     })
     .catch(console.error);
   }, []);
-
-
 
 
   async function apiGet(params) {
@@ -114,22 +115,60 @@ const ModuleAdministration = () => {
 
   const handleBackup = async () => {
     try {
-      const res = await fetch('http://localhost:3020/Plateforme/smart-home-project/api/Backup.php', {
+      const res = await fetch("http://localhost:3020/Plateforme/smart-home-project/api/Backup.php", {
         credentials: 'include'
       });
-      const data = await res.json();
-      if (data.status === 'success') {
+  
+      const data = await parseJSONSafely(res);
+  
+      if (data && data.status === 'success') {
         alert(`Sauvegarde créée : ${data.file}`);
+        await fetchList();
       } else {
-        console.error(data.output);
-        alert('Erreur lors de la sauvegarde');
+        console.error(data);
+        alert('Erreur lors de la sauvegarde : ' + (data?.message || data?.output?.join('\n') || 'Réponse vide'));
       }
     } catch (err) {
       console.error(err);
       alert('Erreur réseau lors de la sauvegarde');
     }
   };
+  
+  
 
+  const fetchList = async () => {
+    try {
+      const res = await fetch("http://localhost:3020/Plateforme/smart-home-project/api/Backup.php?action=list", {
+        credentials: 'include'
+      });
+  
+      const json = await parseJSONSafely(res);
+  
+      if (json && json.status === 'success') {
+        setBackups(json.files);
+      } else {
+        console.error('Liste backups échouée', json);
+      }
+    } catch (err) {
+      console.error('Erreur liste backups', err);
+    }
+  };
+
+  const parseJSONSafely = async (res) => {
+    const text = await res.text();
+  
+    console.log("Réponse brute du backend :", text); 
+  
+    try {
+      return JSON.parse(text);
+    } catch (err) {
+      console.error('Erreur JSON.parse:', err.message);
+      return null;
+    }
+  };
+  
+  
+  
   const handleCardLeave = () => {
     setHoveredCard(null);
   };
@@ -139,34 +178,27 @@ const ModuleAdministration = () => {
   };
 
 
-  const handleRestore = async () => {
-    if (!selectedBackup) {
-      alert('Veuillez d\'abord choisir un fichier de sauvegarde.');
-      return;
-    }
-  
+  const handleRestoreLatest = async () => {
     try {
-      const res = await fetch(
-        `http://localhost:3020/plateforme/smart-home-project/api/Backup.php?action=restore&file=${encodeURIComponent(selectedBackup)}`,
-        { credentials: 'include' }
-      );
-      const json = await res.json();
-      if (json.status === 'success') {
-        alert('Restauration réussie !');
+      const res = await fetch("http://localhost:3020/Plateforme/smart-home-project/api/Backup.php?action=restore-latest", {
+        credentials: 'include'
+      });
+  
+      const data = await parseJSONSafely(res);
+  
+      if (data && data.status === 'success') {
+
+        alert(`Restauration réussie depuis le fichier : ${data.file}`);
       } else {
-        alert('Échec de la restauration: ' + (json.message || 'Erreur inconnue'));
-        if (json.output) {
-          console.error('Détails:', json.output.join('\n'));
-        }
+        alert('Erreur : ' + data.message);
+        console.error(data);
       }
-    } catch (error) {
-      console.error(error);
-      alert('Erreur réseau lors de la restauration.');
+    } catch (err) {
+      alert('Erreur réseau');
+      console.error(err);
     }
   };
   
-  
-
   useEffect(() => {
     const fetchBackups = async () => {
       try {
@@ -176,7 +208,7 @@ const ModuleAdministration = () => {
         const json = await res.json();
         setBackups(json.files || []);
         if (json.files.length > 0) {
-          setSelectedBackup(json.files[0]); // Par défaut on sélectionne le plus récent
+          setSelectedBackup(json.files[0]); 
         }
       } catch (error) {
         console.error(error);
@@ -235,24 +267,32 @@ const ModuleAdministration = () => {
     boxShadow: hoveredCard === cardId ? '0 6px 12px rgba(0,0,0,0.3)' : '0 4px 6px rgba(0,0,0,0.2)'
   });
 
+
   
 
   const getButtonStyle = (buttonId) => ({
-    backgroundColor: hoveredButton === buttonId ? 'rgba(211, 84, 0, 0.4)' : 'rgba(211, 84, 0, 0.2)',
-    color: '#f5f5f5',
-    border: `1px solid ${hoveredButton === buttonId ? '#E67E22' : 'rgba(211, 84, 0, 0.3)'}`,
-    padding: '1rem 2rem',
+    backgroundColor: themeStyles[theme].buttonBackground,
+    color: themeStyles[theme].buttonText,
+    padding: '0.8rem 1.5rem',
     borderRadius: '8px',
+    border: 'none',
     cursor: 'pointer',
     transition: 'all 0.3s ease',
     fontSize: '1.1rem',
-    marginBottom: '1.5rem',
-    width: buttonId === 'close' ? 'auto' : '100%',
     fontWeight: 'bold',
-    boxShadow: hoveredButton === buttonId ? '0 4px 8px rgba(0,0,0,0.3)' : '0 2px 4px rgba(0,0,0,0.2)',
-    transform: hoveredButton === buttonId ? 'translateY(-3px) scale(1.02)' : 'none',
-    letterSpacing: hoveredButton === buttonId ? '0.5px' : 'normal'
+    boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+    '&:hover': {
+      backgroundColor: themeStyles[theme].buttonHover,
+      transform: 'translateY(-3px) scale(1.05)',
+      boxShadow: '0 4px 8px rgba(0,0,0,0.3)',
+      letterSpacing: '0.5px'
+    },
+    '&:active': {
+      transform: 'translateY(1px) scale(0.95)',
+      boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+    }
   });
+
 
   const getSearchStyle = () => ({
     width: '100%',
@@ -268,26 +308,101 @@ const ModuleAdministration = () => {
     boxShadow: focusedSearch ? '0 0 0 2px rgba(230, 126, 34, 0.2)' : 'none'
   });
 
+  const [theme, setTheme] = useState('dark'); // État pour gérer le thème
 
-  const [theme, setTheme] = useState('Clair');
+  // Styles pour les thèmes
+  const themeStyles = {
+    dark: {
+      background: '#1a1a1a',
+      text: '#ffffff',
+      cardBackground: 'rgba(211, 84, 0, 0.15)',
+      cardBorder: 'rgba(211, 84, 0, 0.3)',
+      modalBackground: '#343a40',
+      modalText: '#ffffff',
+      buttonBackground: '#D35400',
+      buttonText: '#ffffff',
+      buttonHover: '#E67E22',
+      headerBackground: 'rgba(245, 245, 245, 0.85)',
+      headerText: '#333',
+      footerBackground: 'rgba(245, 245, 245, 0.85)',
+      footerText: '#333'
+    },
+    light: {
+      background: '#ffffff',
+      text: '#333333',
+      cardBackground: 'rgba(211, 84, 0, 0.05)',
+      cardBorder: 'rgba(211, 84, 0, 0.2)',
+      modalBackground: '#ffffff',
+      modalText: '#333333',
+      buttonBackground: '#D35400',
+      buttonText: '#ffffff',
+      buttonHover: '#E67E22',
+      headerBackground: 'rgba(255, 255, 255, 0.9)',
+      headerText: '#333',
+      footerBackground: 'rgba(255, 255, 255, 0.9)',
+      footerText: '#333'
+    }
+  };
+
+  // Fonction pour basculer le thème
+  const toggleTheme = () => {
+    setTheme(prevTheme => prevTheme === 'dark' ? 'light' : 'dark');
+  };
+
+  // Fonction pour obtenir les couleurs du thème actuel
+  const getCurrentModalColors = () => themeStyles[theme];
+
+
+  const handleUpdatePassword = async (userId) => {
+    const newPwd = prompt("Entrez le nouveau mot de passe :");
+    if (!newPwd) return;
+  
+    try {
+      const res = await fetch(API_URL, {
+        method: 'PUT',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: userId, newPassword: newPwd })
+      });
+      const json = await res.json();
+      if (json.status !== 'success') throw new Error(json.message);
+  
+      alert("Mot de passe mis à jour !");
+     
+      setActiveModal('users');
+  
+      fetchUsers();
+    } catch (err) {
+      console.error(err);
+      alert("Erreur lors de la mise à jour du mot de passe : " + err.message);
+    }
+  };
+  
 
   useEffect(() => {
-    document.body.className = theme === 'Clair' ? 'light-theme' : 'dark-theme';
+    document.body.style.backgroundColor = themeStyles[theme].background;
+    document.body.style.color = themeStyles[theme].text;
   }, [theme]);
+
 
   useEffect(() => {
     (async () => {
       try {
-        const res = await fetch(`${DEVICES_API}?action=categories`, {
-          credentials: 'include'
+        const res = await fetch(`${CATEGORY_API}?action=getCategories`, {
+          credentials: 'include',
         });
-        const { categories } = await res.json();
-        setDeviceTypeOptions(categories);
+        const data = await res.json();
+        if (data.success) {
+          setDeviceTypeOptions(data.categories);
+        } else {
+          console.error('Erreur chargement catégories :', data.message);
+        }
       } catch (err) {
-        console.error('Erreur chargement catégories', err);
+        console.error('Erreur réseau chargement catégories', err);
       }
     })();
   }, []);
+  
   
 
 
@@ -333,7 +448,7 @@ const ModuleAdministration = () => {
   const [editDevice,setEditDevice] = useState(null);
   const [newCategory, setNewCategory] = useState('');
   const [history, setHistory] = useState([]);
-  const [validationRule, setValidationRule] = useState('Automatique');
+  const [validationRule, setValidationRule] = useState('Manuelle');
   const [showAddUserForm, setShowAddUserForm] = useState(false);
   const [editUser, setEditUser] = useState(null);
   const [showHistoryModal, setShowHistoryModal] = useState(false);
@@ -468,6 +583,7 @@ const ModuleAdministration = () => {
       setLoadingUsers(false);
     }
   };
+
   
 
   const handleDeleteUser = async () => {
@@ -565,7 +681,7 @@ const ModuleAdministration = () => {
       try {
         console.log('Contenu de newCategory avant envoi :', JSON.stringify(newCategory));
 
-        const response = await fetch(`${DEVICES_API}?action=addCategory`, {
+        const response = await fetch(`${CATEGORY_API}?action=addCategory`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
@@ -601,7 +717,7 @@ const ModuleAdministration = () => {
         return;
       }
   
-      const response = await fetch(`${DEVICES_API}?action=deleteCategory&id=${categoryId}`, {
+      const response = await fetch(`${CATEGORY_API}?action=deleteCategory&id=${categoryId}`, {
         method: 'DELETE',
         credentials: 'include',
       });
@@ -630,28 +746,29 @@ const ModuleAdministration = () => {
 
   const styles = {
       modal: {
-          position: 'fixed',
+      position: 'fixed',
       top: '50%',
       left: '50%',
       transform: 'translate(-50%, -50%)',
-      backgroundColor: 'rgba(0, 0, 0, 0.7)',
-          padding: '2rem',
-          borderRadius: '10px',
+      backgroundColor: theme === 'dark' ? '#343a40' : '#ffffff',
+      padding: '2rem',
+      borderRadius: '10px',
       boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
       width: '90%',
       maxWidth: '1400px',
       height: '85vh',
-          overflowY: 'auto',
+      overflowY: 'auto',
       zIndex: 1000,
       border: '1px solid #D35400',
-      backdropFilter: 'blur(10px)'
-        },
+      backdropFilter: 'blur(10px)',
+      color: theme === 'dark' ? '#ffffff' : '#000000'
+    },
     modalContent: {
           display: 'flex',
           flexDirection: 'column',
       gap: '1.5rem',
-          color: '#f5f5f5',
-          width: '100%',
+      color: theme === 'dark' ? '#ffffff' : '#000000',
+      width: '100%',
       minHeight: '100%'
         },
     modalHeader: {
@@ -664,9 +781,48 @@ const ModuleAdministration = () => {
         },
     modalTitle: {
       fontSize: '2.5rem',
-      color: '#f5f5f5',
+      color: theme === 'dark' ? '#ffffff' : '#000000',
       margin: 0,
-          fontWeight: 'bold',
+      fontWeight: 'bold'
+    },
+    cardTitle: {
+      fontSize: '1.8rem',
+      color: theme === 'dark' ? '#ffffff' : '#000000',
+      marginBottom: '1.5rem',
+      borderBottom: `2px solid ${theme === 'dark' ? 'rgba(211, 84, 0, 0.3)' : 'rgba(211, 84, 0, 0.2)'}`,
+      paddingBottom: '0.5rem',
+      fontWeight: 'bold',
+      textShadow: theme === 'dark' ? '1px 1px 2px rgba(0,0,0,0.5)' : 'none',
+      transition: 'all 0.3s ease'
+    },
+    cardContent: {
+      color: theme === 'dark' ? '#ffffff' : '#000000',
+      fontSize: '1.1rem',
+      lineHeight: '1.6',
+      flex: 1,
+      display: 'flex',
+      flexDirection: 'column',
+      justifyContent: 'space-between',
+      '& p': {
+        color: theme === 'dark' ? '#ffffff' : '#000000',
+        transition: 'all 0.3s ease',
+        margin: '0.5rem 0'
+      }
+    },
+    formLabel: {
+      display: 'block',
+      marginBottom: '0.5rem',
+      fontWeight: 'bold',
+      color: theme === 'dark' ? '#ffffff' : '#000000'
+    },
+    formInput: {
+      width: '100%',
+      padding: '0.75rem',
+      borderRadius: '5px',
+      border: '1px solid #ccc',
+      fontSize: '1rem',
+      backgroundColor: theme === 'dark' ? '#343a40' : '#ffffff',
+      color: theme === 'dark' ? '#ffffff' : '#000000'
     
     },
     closeButton: {
@@ -750,19 +906,19 @@ const ModuleAdministration = () => {
       paddingBottom: '2rem'
     },
     card: {
-      backgroundColor: 'rgba(211, 84, 0, 0.15)',
-          padding: '2rem',
+      backgroundColor: themeStyles[theme].cardBackground,
+      padding: '2rem',
       borderRadius: '10px',
-      border: '1px solid rgba(211, 84, 0, 0.3)',
+      border: `1px solid ${themeStyles[theme].cardBorder}`,
       transition: 'all 0.3s ease',
-          cursor: 'pointer',
+      cursor: 'pointer',
       minHeight: '200px',
-          display: 'flex',
-          flexDirection: 'column',
+      display: 'flex',
+      flexDirection: 'column',
       boxShadow: '0 4px 6px rgba(0,0,0,0.2)',
       '&:hover': {
         transform: 'translateY(-5px)',
-        backgroundColor: 'rgba(211, 84, 0, 0.3)',
+        backgroundColor: theme === 'dark' ? 'rgba(211, 84, 0, 0.3)' : 'rgba(211, 84, 0, 0.1)',
         boxShadow: '0 6px 12px rgba(0,0,0,0.3)',
         borderColor: '#E67E22',
         '& h3': {
@@ -770,23 +926,13 @@ const ModuleAdministration = () => {
           borderBottomColor: '#E67E22'
         },
         '& p': {
-          color: '#f5f5f5',
+          color: themeStyles[theme].text,
           transform: 'scale(1.02)'
         }
       }
     },
-    cardTitle: {
-      fontSize: '1.8rem',
-      color: '#f5f5f5',
-      marginBottom: '1.5rem',
-      borderBottom: '2px solid rgba(211, 84, 0, 0.3)',
-      paddingBottom: '0.5rem',
-          fontWeight: 'bold',
-      textShadow: '1px 1px 2px rgba(0,0,0,0.5)',
-          transition: 'all 0.3s ease'
-        },
     cardContent: {
-      color: '#f5f5f5',
+      color: themeStyles[theme].text,
       fontSize: '1.1rem',
       lineHeight: '1.6',
       flex: 1,
@@ -922,28 +1068,6 @@ const ModuleAdministration = () => {
       zIndex: 2000,
       color: '#333'
     },
-    formInput: {
-      padding: '0.4rem',
-          borderRadius: '5px',
-      border: '1px solid rgba(211, 84, 0, 0.3)',
-      backgroundColor: 'rgba(211, 84, 0, 0.15)',
-      color: '#333',
-      fontSize: '1rem',
-      marginBottom: '0.5rem',
-      transition: 'all 0.3s ease',
-      '&:hover': {
-        backgroundColor: 'rgba(211, 84, 0, 0.25)',
-        borderColor: '#E67E22',
-        transform: 'scale(1.01)'
-      },
-      '&:focus': {
-        outline: 'none',
-        borderColor: '#E67E22',
-        backgroundColor: 'rgba(211, 84, 0, 0.3)',
-        boxShadow: '0 0 0 2px rgba(230, 126, 34, 0.2)',
-        transform: 'scale(1.02)'
-      }
-    },
     backgroundOverlay: {
       position: 'fixed',
       top: 0,
@@ -958,7 +1082,7 @@ const ModuleAdministration = () => {
       top: showHeader ? 0 : '-100px',
       left: 0,
       right: 0,
-      backgroundColor: 'rgba(245, 245, 245, 0.85)',
+      backgroundColor: themeStyles[theme].headerBackground,
       backdropFilter: 'blur(5px)',
       borderBottom: '3px solid #D35400',
       padding: '0.5rem 2rem',
@@ -1001,7 +1125,6 @@ const ModuleAdministration = () => {
     ]},
     { key: 'maintenance', title: 'Maintenance', features: [
       'Sauvegarde et restauration des données',
-      'Mise à jour des paramètres système',
       'Vérification de la sécurité'
     ]},
     { key: 'customization', title: 'Personnalisation', features: [
@@ -1038,11 +1161,11 @@ const ModuleAdministration = () => {
   const handleAddUser = async () => {
     const {
       username, password, email,
-      role, points, niveau, birthdate, gender, age, photoFile
+      role, points, niveau, birthdate, gender, age, photoFile, memberType
     } = newUser;
   
     // Validation des champs obligatoires
-    if (!username || !password || !email || !role || !niveau || !birthdate || !gender || points == null || age == null) {
+    if (!username  || !password || !email || !role || !niveau || !birthdate || !gender || !memberType || points == null || age == null) {
       return alert('Tous les champs sont obligatoires !');
     }
 
@@ -1060,6 +1183,7 @@ const ModuleAdministration = () => {
     formData.append('role',      role);
     formData.append('points',    points);
     formData.append('niveau',    niveau);
+    formData.append('memberType', memberType);
     formData.append('birthdate', birthdate);
     formData.append('gender',    gender);
     formData.append('age',       age);
@@ -1303,43 +1427,13 @@ const ModuleAdministration = () => {
                       style={getButtonStyle('restore')}
                       onMouseEnter={() => handleButtonHover('restore')}
                       onMouseLeave={handleButtonLeave}
-                      onClick={() => alert('Restauration effectuée !')}
+                      onClick={handleRestoreLatest}
                     >
                       Restaurer les données
                     </button>
                   </div>
                 </div>
-                <div 
-                  style={getCardStyle('update')}
-                  onMouseEnter={() => handleCardHover('update')}
-                  onMouseLeave={handleCardLeave}
-                >
-                  <h3 style={{
-                    ...styles.cardTitle,
-                    color: hoveredCard === 'update' ? '#E67E22' : '#f5f5f5',
-                    borderBottom: `2px solid ${hoveredCard === 'update' ? '#E67E22' : 'rgba(211, 84, 0, 0.3)'}`
-                  }}>
-                    Mise à jour du système
-                  </h3>
-                  <div style={styles.cardContent}>
-                    <button
-                      style={getButtonStyle('checkUpdate')}
-                      onMouseEnter={() => handleButtonHover('checkUpdate')}
-                      onMouseLeave={handleButtonLeave}
-                      onClick={() => alert('Mise à jour effectuée !')}
-                    >
-                      Vérifier les mises à jour
-                    </button>
-                    <button
-                      style={getButtonStyle('updateSettings')}
-                      onMouseEnter={() => handleButtonHover('updateSettings')}
-                      onMouseLeave={handleButtonLeave}
-                      onClick={() => alert('Paramètres mis à jour !')}
-                    >
-                      Mettre à jour les paramètres
-                    </button>
-                  </div>
-                </div>
+                
                 <div 
                   style={getCardStyle('security')}
                   onMouseEnter={() => handleCardHover('security')}
@@ -1353,23 +1447,35 @@ const ModuleAdministration = () => {
                     Sécurité
                   </h3>
                   <div style={styles.cardContent}>
-                    <button
-                      style={getButtonStyle('checkSecurity')}
-                      onMouseEnter={() => handleButtonHover('checkSecurity')}
-                      onMouseLeave={handleButtonLeave}
-                      onClick={() => alert('Vérification de sécurité effectuée !')}
-                    >
-                      Vérifier la sécurité
-                    </button>
-                    <button
-                      style={getButtonStyle('updatePassword')}
-                      onMouseEnter={() => handleButtonHover('updatePassword')}
-                      onMouseLeave={handleButtonLeave}
-                      onClick={() => alert('Mot de passe mis à jour !')}
-                    >
-                      Mettre à jour le mot de passe
-                    </button>
-                  </div>
+                  <label style={{ color: '#f5f5f5', marginBottom: '.5rem' }}>
+                    Choisir un utilisateur :
+                  </label>
+                  <select
+                    value={selectedUser?.id || ''}
+                    onChange={e => {
+                      const userId = parseInt(e.target.value, 10);
+                      const u = users.find(u => u.id === userId);
+                      setSelectedUser(u || null);
+                    }}
+                    style={{ width: '100%', padding: '0.5rem', borderRadius: '4px' }}
+                  >
+                    <option value="">-- aucun --</option>
+                    {users.map(u => (
+                      <option key={u.id} value={u.id}>
+                        {u.username} ({u.email})
+                      </option>
+                    ))}
+                  </select>
+
+                  <button
+                    style={{ marginTop: '1rem', ...getButtonStyle('updatePassword') }}
+                    disabled={!selectedUser}
+                    onClick={() => handleUpdatePassword(selectedUser.id)}
+                  >
+                    Mettre à jour le mot de passe
+                  </button>
+                </div>
+
                   </div>
               </div>
             </div>
@@ -1381,8 +1487,11 @@ const ModuleAdministration = () => {
             <div style={styles.modalContent}>
               <div style={styles.modalHeader}>
                 <h2 style={styles.modalTitle}>Personnalisation</h2>
-                                          <button
-                  style={getButtonStyle('close')}
+                <button
+                  style={{
+                    ...getButtonStyle('close'),
+                    color: themeStyles[theme].buttonText
+                  }}
                   onMouseEnter={() => handleButtonHover('close')}
                   onMouseLeave={handleButtonLeave}
                   onClick={closeModal}
@@ -1398,23 +1507,27 @@ const ModuleAdministration = () => {
                 >
                   <h3 style={{
                     ...styles.cardTitle,
-                    color: hoveredCard === 'theme' ? '#E67E22' : '#f5f5f5',
-                    borderBottom: `2px solid ${hoveredCard === 'theme' ? '#E67E22' : 'rgba(211, 84, 0, 0.3)'}`
+                    color: '#f5f5f5',
+                    borderBottom: `2px solid ${themeStyles[theme].cardBorder}`
                   }}>
                     Thème
                   </h3>
                   <div style={styles.cardContent}>
                     <p style={{
+                      color: themeStyles[theme].text,
                       transform: hoveredCard === 'theme' ? 'scale(1.02)' : 'none',
                       transition: 'all 0.3s ease'
                     }}>
-                      Thème actuel : {theme}
+                      Thème actuel : {theme === 'dark' ? 'Sombre' : 'Clair'}
                     </p>
                     <button 
-                      style={getButtonStyle('changeTheme')}
+                      style={{
+                        ...getButtonStyle('changeTheme'),
+                        color: themeStyles[theme].buttonText
+                      }}
                       onMouseEnter={() => handleButtonHover('changeTheme')}
                       onMouseLeave={handleButtonLeave}
-                      onClick={() => setTheme(theme === 'Clair' ? 'Sombre' : 'Clair')}
+                      onClick={toggleTheme}
                     >
                       Changer de thème
                     </button>
@@ -1434,19 +1547,18 @@ const ModuleAdministration = () => {
                   </h3>
                   <div style={styles.cardContent}>
                     <p style={{
+                      color: themeStyles[theme].text,
                       transform: hoveredCard === 'interface' ? 'scale(1.02)' : 'none',
                       transition: 'all 0.3s ease'
                     }}>
-                      Validation : {validationRule}
+                      Validation : {validationMode}
                     </p>
-                                                          <button
+                    <button
                       style={getButtonStyle('changeValidation')}
-                      onMouseEnter={() => handleButtonHover('changeValidation')}
-                      onMouseLeave={handleButtonLeave}
-                      onClick={() => setValidationRule(validationRule === 'Automatique' ? 'Manuelle' : 'Automatique')}
-                                                          >
-                      Changer le mode de validation
-                                                          </button>
+                      onClick={onToggleValidation}
+                    >
+                      Mode de validation : {validationMode}
+                    </button>
                   </div>
                 </div>
                 <div 
@@ -1602,7 +1714,7 @@ const ModuleAdministration = () => {
               <h2 style={{...styles.modalTitle, color: '#D35400', textAlign: 'center', marginBottom: '1rem'}}>Détails de l'utilisateur</h2>
               
               {/* Photo de l'utilisateur */}
-              {selectedUser.photo && selectedUser.photo !== '/api/uploads/avatar.jpg' && (
+              {selectedUser.photo && selectedUser.photo !== 'http://localhost:3020/plateforme/smart-home-project/api/uploads/avatar.jpg' && (
                 <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '2rem' }}>
                   <div style={{
                     width: '150px',
@@ -1620,7 +1732,7 @@ const ModuleAdministration = () => {
                         height: '100%',
                         objectFit: 'cover'
                       }}
-                      onError={e => { e.target.onerror = null; e.target.src = '/api/uploads/avatar.jpg'; }}
+                      onError={e => { e.target.onerror = null; e.target.src = 'http://localhost:3020/plateforme/smart-home-project/api/uploads/avatar.jpg'; }}
                     />
                   </div>
                 </div>
@@ -1709,7 +1821,7 @@ const ModuleAdministration = () => {
                   <span>Supprimer</span>
                 </button>
                 <button
-                  onClick={() => setActiveModal('editUser')}
+                  onClick={() => handleOpenEdit(selectedUser)}
                   style={{
                     backgroundColor: '#D35400',
                     color: 'white',
@@ -2021,6 +2133,7 @@ const ModuleAdministration = () => {
                     </div>
           </div>
         );
+        
       default:
         return null;
     }
@@ -2089,8 +2202,6 @@ const ModuleAdministration = () => {
       ['Utilisateurs complexe', users.filter(u => u.role === 'complexe').length],
       ['Utilisateurs simple', users.filter(u => u.role === 'simple').length],
       ['Utilisateurs visiteur', users.filter(u => u.role === 'visiteur').length],
-
-
     ];
     
     autoTable(doc, {
@@ -2729,6 +2840,25 @@ const ModuleAdministration = () => {
           </select>
         </div>
 
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+          <label style={{ fontWeight: 'bold', color: '#333', fontSize: '0.9rem' }}>
+            Type de membre <span style={{ color: 'red' }}>*</span>
+          </label>
+          <select
+            value={newUser.memberType}
+            onChange={e => setNewUser({ ...newUser, memberType: e.target.value })}
+            style={styles.formInput}
+            required
+          >
+            <option value="">Sélectionner le type</option>
+            <option value="Père">Père</option>
+            <option value="Grand-parent">Grand-parent</option>
+            <option value="Fils">Fils</option>
+            <option value="Enfant">Enfant</option>
+            <option value="Mère">Mère</option>
+          </select>
+        </div>
+
         {/* Date de naissance */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
           <label style={{ fontWeight: 'bold', color: '#333', fontSize: '0.9rem' }}>
@@ -3101,7 +3231,7 @@ const ModuleAdministration = () => {
             maxWidth: '90%',
             maxHeight: '90vh',
             overflowY: 'auto',
-            position: 'relative'
+            position: 'relative',
           }}>
             {renderModalContent(activeModal)}
           </div>
@@ -3110,5 +3240,4 @@ const ModuleAdministration = () => {
     </div>
   );
 };
-
 export default ModuleAdministration;

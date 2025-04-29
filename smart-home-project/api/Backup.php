@@ -1,14 +1,14 @@
 <?php
-// backup.php
-// Gère : liste des backups, création (backup) et restauration (restore)
 
-// Autorisations CORS pour React
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
 header("Access-Control-Allow-Origin: http://localhost:3002");
 header("Access-Control-Allow-Credentials: true");
 header("Access-Control-Allow-Methods: GET, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type, Authorization");
 
-// Réponse rapide aux requêtes OPTIONS (préflight CORS)
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
     exit();
@@ -41,57 +41,96 @@ try {
                 return filemtime($b) - filemtime($a);
             });
             $names = array_map('basename', $files);
-        
+
             echo json_encode([
                 'status' => 'success',
                 'files'  => $names
             ]);
-            exit(); 
+            exit();
 
             case 'restore':
-                $file = $_GET['file'] ?? '';
-                $filePath = realpath($backupDir . '/' . basename($file));
-            
-                if (!$filePath || !file_exists($filePath)) {
-                    echo json_encode([
-                        'status'  => 'error',
-                        'message' => 'Fichier introuvable'
-                    ]);
-                    exit();  // <-- AJOUTER ÇA !
-                }
-            
-                $cmd = sprintf(
-                    'cmd /c "%s --host=%s --user=%s --password=%s %s < %s"',
-                    $mysql,
-                    escapeshellarg($DB_HOST),
-                    escapeshellarg($DB_USER),
-                    escapeshellarg($DB_PASS),
-                    escapeshellarg($DB_NAME),
-                    $filePath
-                );
+                case 'restore-latest':
+                    error_log("Début de restauration");
                 
-            
-                exec($cmd . ' 2>&1', $out, $ret);
-            
-                if ($ret === 0) {
-                    echo json_encode([
-                        'status'  => 'success',
-                        'message' => 'Restauration réussie'
-                    ]);
-                    exit();  
-                } else {
-                    echo json_encode([
-                        'status'  => 'error',
-                        'message' => 'Échec de la restauration',
-                        'output'  => $out,
-                        'return'  => $ret
-                    ]);
-                    exit();  
-                }
-            
+                    $files = glob($backupDir . '/*.sql');
+                    error_log("Fichiers trouvés : " . print_r($files, true));
+                
+                    if (!$files || count($files) === 0) {
+                        error_log("Aucune sauvegarde trouvée !");
+                        echo json_encode([
+                            'status'  => 'error',
+                            'message' => 'Aucune sauvegarde trouvée'
+                        ]);
+                        exit();
+                    }
+                
+                    usort($files, function($a, $b) {
+                        return filemtime($b) - filemtime($a);
+                    });
+                
+                    $latestFile = $files[0];
+                    $filePath = realpath($latestFile);
+                    error_log("Fichier à restaurer : $filePath");
+                
+                    if (!$filePath || !file_exists($filePath)) {
+                        error_log("Fichier introuvable !");
+                        echo json_encode([
+                            'status'  => 'error',
+                            'message' => 'Fichier introuvable'
+                        ]);
+                        exit();
+                    }
+                
+                    $cmd = sprintf(
+                        '%s --host=%s --user=%s --password=%s --database=%s --execute="source %s"',
+                        $mysql,
+                        $DB_HOST,
+                        $DB_USER,
+                        $DB_PASS,
+                        $DB_NAME,
+                        str_replace('\\', '/', $filePath)
+                    );
+                    
+                    error_log("Commande exécutée : $cmd");
+                
+                    exec($cmd . ' 2>&1', $out, $ret);
+                
+                    error_log("Résultat code : $ret");
+                    error_log("Sortie commande : " . print_r($out, true));
+                
+                    if ($ret === 0) {
+                        error_log("Restauration réussie !");
+                        echo json_encode([
+                            'status'  => 'success',
+                            'message' => 'Restauration réussie',
+                            'file'    => basename($latestFile)
+                        ]);
+                        exit();
+                    } else {
+                        error_log("Échec restauration !");
+                        echo json_encode([
+                            'status'  => 'error',
+                            'message' => 'Échec de la restauration',
+                            'output'  => $out,
+                            'return'  => $ret
+                        ]);
+                        exit();
+                    }
+                
         case 'backup':
+        $existingFiles = glob($backupDir . '/*.sql');
+        if ($existingFiles && count($existingFiles) > 0) {
+            usort($existingFiles, function($a, $b) {
+                return filemtime($b) - filemtime($a);
+            });
+        
+            $lastBackup = $existingFiles[0];
+            if (file_exists($lastBackup)) {
+                unlink($lastBackup); 
+                error_log("Ancienne sauvegarde supprimée : $lastBackup");
+            }
+        }
         default:
-            // CRÉER UNE NOUVELLE SAUVEGARDE
             $timestamp = date('Ymd_His');
             $filename  = "backup_{$DB_NAME}_{$timestamp}.sql";
             $filepath  = "$backupDir/$filename";
@@ -99,14 +138,14 @@ try {
             $cmd = sprintf(
                 '%s --host=%s --user=%s --password=%s %s > %s',
                 $mysqldump,
-                escapeshellarg($DB_HOST),
-                escapeshellarg($DB_USER),
-                escapeshellarg($DB_PASS),
-                escapeshellarg($DB_NAME),
+                $DB_HOST,
+                $DB_USER,
+                $DB_PASS,
+                $DB_NAME,
                 escapeshellarg($filepath)
             );
 
-            exec($cmd . ' 2>&1', $out, $ret);
+            exec($cmd, $out, $ret);
 
             if ($ret === 0 && file_exists($filepath)) {
                 echo json_encode([
@@ -125,6 +164,7 @@ try {
             break;
     }
 } catch (Throwable $e) {
+    http_response_code(500);
     echo json_encode([
         'status'  => 'error',
         'message' => 'Erreur serveur : ' . $e->getMessage()

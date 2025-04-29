@@ -1,4 +1,3 @@
-mysqldump: [Warning] Using a password on the command line interface can be insecure.
 -- MySQL dump 10.13  Distrib 8.3.0, for Win64 (x86_64)
 --
 -- Host: 127.0.0.1    Database: depenses
@@ -28,7 +27,7 @@ CREATE TABLE `categories` (
   `name` varchar(100) NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `name` (`name`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=MyISAM AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -37,7 +36,33 @@ CREATE TABLE `categories` (
 
 LOCK TABLES `categories` WRITE;
 /*!40000 ALTER TABLE `categories` DISABLE KEYS */;
+INSERT INTO `categories` VALUES (1,'Catégorie 1'),(2,'Catégorie 2'),(3,'Catégorie 3');
 /*!40000 ALTER TABLE `categories` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `config`
+--
+
+DROP TABLE IF EXISTS `config`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `config` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `energy_priority` varchar(32) NOT NULL COMMENT 'Priorité énergétique (ex. low, medium, high, équilibré)',
+  `auto_shutdown_inactive` tinyint(1) NOT NULL DEFAULT '1' COMMENT 'Arrêt automatique des appareils inactifs (0 ou 1)',
+  `alert_sensitivity` varchar(32) NOT NULL COMMENT 'Sensibilité des alertes (faible, moyenne, élevée)',
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `config`
+--
+
+LOCK TABLES `config` WRITE;
+/*!40000 ALTER TABLE `config` DISABLE KEYS */;
+/*!40000 ALTER TABLE `config` ENABLE KEYS */;
 UNLOCK TABLES;
 
 --
@@ -88,7 +113,7 @@ CREATE TABLE `devices` (
   `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `suppressionDemandee` tinyint(1) DEFAULT '0',
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=33 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=34 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -97,7 +122,7 @@ CREATE TABLE `devices` (
 
 LOCK TABLES `devices` WRITE;
 /*!40000 ALTER TABLE `devices` DISABLE KEYS */;
-INSERT INTO `devices` VALUES (1,'dd','thermostat','actif','dd',NULL,0,100,'2025-04-19 00:00:00','2025-04-19 17:21:05','2025-04-19 17:21:05',0),(12,'aa','thermostat','actif','aa',NULL,12,90,'2200-12-12 00:00:00','2025-04-27 18:18:22','2025-04-28 20:32:19',0),(13,'qq ','sécurité','actif','pfeo',NULL,0,100,'2025-04-28 00:00:00','2025-04-28 07:28:39','2025-04-28 07:28:39',0),(24,'a','thermostat','actif','q',NULL,0,100,'2025-04-28 00:00:00','2025-04-28 18:01:50','2025-04-28 18:01:50',0),(25,'objet1 ','sécurité','actif','q',NULL,0,100,'2025-04-28 00:00:00','2025-04-28 18:02:12','2025-04-28 18:02:12',0),(26,'a','sécurité','actif','a',NULL,0,100,'2025-04-28 00:00:00','2025-04-28 18:02:26','2025-04-28 18:02:26',0),(27,'q','thermostat','actif','q',NULL,0,100,'2025-04-28 00:00:00','2025-04-28 18:02:55','2025-04-28 18:02:55',0),(28,'a','thermostat','actif','a',NULL,0,85,'2025-04-28 00:00:00','2025-04-28 18:05:13','2025-04-28 18:05:13',0),(29,'a','thermostat','actif','a',NULL,0,100,'2025-04-28 00:00:00','2025-04-28 18:17:08','2025-04-28 18:17:08',0),(31,'chghg','thermostat','actif','gbuyhi',NULL,20,100,'2025-04-22 00:00:00','2025-04-28 18:39:58','2025-04-28 18:39:58',0),(32,'ss','thermostat','inactif','s',NULL,0,100,'0000-00-00 00:00:00','2025-04-28 20:28:29','2025-04-28 20:28:29',0);
+INSERT INTO `devices` VALUES (1,'dd','thermostat','actif','dd',NULL,0,100,'2025-04-19 00:00:00','2025-04-19 17:21:05','2025-04-19 17:21:05',0),(12,'aa','thermostat','actif','aa',NULL,9,89,'2200-12-12 00:00:00','2025-04-27 18:18:22','2025-04-28 22:34:40',0),(13,'qq ','sécurité','actif','pfeo',NULL,0,100,'2025-04-28 00:00:00','2025-04-28 07:28:39','2025-04-28 07:28:39',0),(24,'a','thermostat','actif','q',NULL,0,100,'2025-04-28 00:00:00','2025-04-28 18:01:50','2025-04-28 18:01:50',0),(25,'objet1 ','sécurité','actif','q',NULL,0,100,'2025-04-28 00:00:00','2025-04-28 18:02:12','2025-04-28 18:02:12',0),(26,'a','sécurité','actif','a',NULL,0,100,'2025-04-28 00:00:00','2025-04-28 18:02:26','2025-04-28 18:02:26',0),(27,'q','thermostat','actif','q',NULL,0,100,'2025-04-28 00:00:00','2025-04-28 18:02:55','2025-04-28 18:02:55',0),(28,'a','thermostat','actif','a',NULL,0,85,'2025-04-28 00:00:00','2025-04-28 18:05:13','2025-04-28 18:05:13',0),(29,'a','thermostat','actif','a',NULL,0,100,'2025-04-28 00:00:00','2025-04-28 18:17:08','2025-04-28 18:17:08',0),(33,'dsdsds','thermostat','','dsdsd',NULL,50,100,'2025-04-30 00:00:00','2025-04-29 15:34:25','2025-04-29 15:34:25',0);
 /*!40000 ALTER TABLE `devices` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -120,14 +145,14 @@ CREATE TABLE `users` (
   `points` int DEFAULT '0',
   `niveau` enum('debutant','intermediaire','avance','expert') CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT 'debutant',
   `birthdate` date DEFAULT NULL,
-  `gender` enum('M','F','Autre','PreferePasDire') CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `gender` enum('Homme','Femme','Autre','PreferePasDire') CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
   `age` int DEFAULT NULL,
   `member_type` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
   `verification_token` varchar(255) COLLATE utf8mb4_general_ci DEFAULT NULL,
   `is_verified` tinyint(1) DEFAULT '0',
   PRIMARY KEY (`id`),
   UNIQUE KEY `uniq_username` (`username`)
-) ENGINE=InnoDB AUTO_INCREMENT=62 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=72 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -136,7 +161,7 @@ CREATE TABLE `users` (
 
 LOCK TABLES `users` WRITE;
 /*!40000 ALTER TABLE `users` DISABLE KEYS */;
-INSERT INTO `users` VALUES (3,'Admin','$2y$10$unIL4WquuCRDXcnJGtJU/OYNfkj84ki781lZvzWzxq5W5EwZedpWa','DuChef','Admin','comptedepense205@gmail.com','http://localhost:3020/plateforme/smart-home-project/api/uploads/avatar.jpg','admin',1195,'expert','2025-04-10','',25,'grandparent',NULL,0),(14,'Younes','$2y$10$GX7LgFh/QLXU6CeQJ68Lrewz1rZMSziGqLp4I2zk2zjSjLHHmFORG','SABRI','Younes','younesysabri@hotmail.fr','http://localhost:3020/plateforme/smart-home-project/api/uploads/avatar.jpg','admin',333,'expert','0000-00-00','',21,'','508c86f93d5cf25e12a6ff4d17cfdecdd32bb78c163097bc8f8bf91344d3f985',1),(17,'d','$2y$10$nT2W4B6R0JDuVSZbh/bWS.yr.0Z52TI4Rp13SNy0bkm8XSjMeBPTy','','','Younes','uploads/default-avatar.jpg','visiteur',10,'debutant','2025-04-09','',21,NULL,NULL,0),(60,'1123','$2y$10$ehrk9k6cSLizecXrTUNI9.Wk8tej8PyYLCwWMnmGba0xOIdIF87jy','','','12@mail.com','uploads/avatar_680ff6dfa9bad-Capture d’écran du 2025-04-28 17-10-10.png','visiteur',123,'debutant','2221-12-12','',123,NULL,NULL,0),(61,'123456','$2y$10$GkCpt/Ny/e3HtSDw8q9wBu90bKc4K07NQp7Qk8/9D60vlUbKJrlly','','','456316@mail.com','uploads/default-avatar.jpg','simple',12,'intermediaire','2200-12-12','',12,NULL,NULL,0);
+INSERT INTO `users` VALUES (3,'Admin','$2y$10$unIL4WquuCRDXcnJGtJU/OYNfkj84ki781lZvzWzxq5W5EwZedpWa','DuChef','Admin','comptedepense205@gmail.com','http://localhost:3020/plateforme/smart-home-project/api/uploads/avatar.jpg','admin',1492,'expert','2025-04-10','Homme',20,'grandparent',NULL,0),(14,'Younes4','$2y$10$GX7LgFh/QLXU6CeQJ68Lrewz1rZMSziGqLp4I2zk2zjSjLHHmFORG','SABRI','Younes','younesysabri@hotmail.fr','http://localhost:3020/plateforme/smart-home-project/api/uploads/avatar.jpg','admin',333,'expert','0000-00-00','',21,'','508c86f93d5cf25e12a6ff4d17cfdecdd32bb78c163097bc8f8bf91344d3f985',1),(62,'124z','$2y$10$Ly7PLHzkWYstThb/4Lrs.uyz3n.HPbfbIg47/xjxZc8ppwOpAPn5q','','','mail@mail.com','uploads/default-avatar.jpg','simple',0,'debutant','2022-02-12','Homme',12,NULL,NULL,0),(65,'sdsdsd7','$2y$10$Zv2eTok109vb5kp228b00eD5u.UyEs1j7bJjuDxeB.lnsNn9/dzma','','','Younes@hotmail.fr','uploads/default-avatar.jpg','visiteur',4,'debutant','2025-04-18','Homme',11,NULL,NULL,0),(66,'d','$2y$10$zOhlOtxR0w.kDj9AvKm7g.V9U8CMeWHWzMO6UOA7fIpjYsvj/d4su','','','d@gmail.com','uploads/default-avatar.jpg','visiteur',0,'debutant','2025-04-30','Femme',25,NULL,NULL,0),(68,'sabriyounes','$2y$10$E2CvIvuv1tEsY/9rqno2KOu9BPDgVSYer01h8QVL5TcZK4NPMXWbS','','','y','uploads/default-avatar.jpg','complexe',0,'intermediaire','2025-04-24','Femme',24,'',NULL,0);
 /*!40000 ALTER TABLE `users` ENABLE KEYS */;
 UNLOCK TABLES;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
@@ -149,4 +174,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2025-04-28 23:56:27
+-- Dump completed on 2025-04-29 18:59:21

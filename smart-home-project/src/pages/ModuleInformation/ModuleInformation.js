@@ -58,7 +58,19 @@ const getIconForType = (type) => {
 
 function ModuleInformation() {
 
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState(() => {
+    const storedUser = localStorage.getItem("user");
+    if (storedUser) {
+      try {
+        return JSON.parse(storedUser);
+      } catch (error) {
+        console.error('Erreur parsing user:', error);
+        localStorage.removeItem('user');
+        return null;
+      }
+    }
+    return null;
+  });
 
   const [newNewsText, setNewNewsText] = useState('');
   const [newNewsType, setNewNewsType] = useState('');
@@ -88,6 +100,8 @@ function ModuleInformation() {
     try {
       const response = await fetch('http://localhost:3020/plateforme/smart-home-project/api/device.php', { credentials: 'include' });
       const data = await response.json();
+      
+      // Mettre à jour uniquement les appareils sans toucher à l'utilisateur
       if (Array.isArray(data.devices)) {
         const devicesWithIcons = data.devices.map(device => ({
           ...device,
@@ -95,28 +109,51 @@ function ModuleInformation() {
         }));
         setConnectedDevices(devicesWithIcons);
       }
-  
     } catch (error) {
       console.error('Erreur fetchDevices:', error);
+      // Ne pas déconnecter l'utilisateur en cas d'erreur de chargement des appareils
     }
   };
 
+  const updateUserPoints = async () => {
+    // Ne faire la mise à jour que si l'utilisateur est déjà connecté
+    if (user) {
+      try {
+        const response = await fetch('http://localhost:3020/plateforme/smart-home-project/api/User-manager.php', {
+          credentials: 'include'
+        });
+        if (response.ok) {
+          const data = await response.json();
+          if (data.users && data.users.length > 0) {
+            // On met à jour uniquement les points et on conserve le reste des données
+            const updatedUser = { 
+              ...user, 
+              points: data.users[0].points 
+            };
+            setUser(updatedUser);
+            localStorage.setItem("user", JSON.stringify(updatedUser));
+          }
+        }
+      } catch (error) {
+        console.error('Erreur mise à jour points:', error);
+        // Ne pas déconnecter en cas d'erreur
+      }
+    }
+  };
   
   useEffect(() => {
+    // Toujours récupérer les appareils
     fetchDevices();
   }, []);
-  
 
   useEffect(() => {
-    const storedUser = localStorage.getItem("user");
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    }
+    updateUserPoints();
   }, []);
 
   const handleLogout = () => {
     localStorage.removeItem("user");
     setUser(null);
+    window.location.href = "/auth";
   };
 
   const [showHeader, setShowHeader] = useState(true);
@@ -247,97 +284,102 @@ function ModuleInformation() {
           boxSizing: 'border-box',
         }}
       >
-        <img src={logoImage} alt="CYHOME Logo" style={{ height: '50px' }} />
-        <h1 style={{ margin: 0, fontSize: '1.5rem', color: '#D35400' }}>Module Information</h1>
-        {user ? (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-            <Link
-              to="/profile"
-              style={{
-                backgroundColor: '#fff',
-                borderRadius: '10px',
-                padding: '0.4rem 0.8rem',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '10px',
-                boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-                textDecoration: 'none',
-                transition: 'all 0.3s ease'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'scale(1.05)';
-                e.currentTarget.style.boxShadow = '0 6px 8px rgba(0,0,0,0.2)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'scale(1)';
-                e.currentTarget.style.boxShadow = '0 4px 6px rgba(0,0,0,0.1)';
-              }}
-            >
-              <img
-                src={user.photo || "/default-avatar.png"}
-                alt="Profil"
-                style={{
-                  height: '40px',
-                  width: '40px',
-                  borderRadius: '50%',
-                  objectFit: 'cover',
-                  border: '2px solid #D35400'
-                }}
-              />
-              <div style={{ display: 'flex', flexDirection: 'column', fontSize: '0.85rem' }}>
-                <span style={{ color: '#D35400', fontWeight: 'bold' }}>{user.username}</span>
-                <span style={{ color: '#666' }}>{user.role} – {user.points} pts</span>
-              </div>
-            </Link>
-            <button
-              onClick={handleLogout}
-              style={{
-                color: '#D35400',
-                padding: '0.4rem 0.8rem',
-                borderRadius: '5px',
-                border: '2px solid #D35400',
-                backgroundColor: 'transparent',
-                fontWeight: 'bold',
-                cursor: 'pointer'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = '#D35400';
-                e.currentTarget.style.color = 'white';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = 'transparent';
-                e.currentTarget.style.color = '#D35400';
-              }}
-            >
-              Déconnexion
-            </button>
+        <div style={{ display: 'flex', alignItems: 'center' }}>
+          <img src={logoImage} alt="CYHOME Logo" style={{ height: '50px', marginRight: '10px' }} />
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <span style={{ fontWeight: 'bold', fontSize: '1.2rem', color: '#333' }}>CYHOME</span>
+            <span style={{ fontSize: '0.8rem', color: '#666' }}>La maison intelligente, en toute sécurité</span>
           </div>
-        ) : (
-          <Link
-            to="/auth"
-            style={{
-              color: '#D35400',
-              padding: '0.4rem 1rem',
-              borderRadius: '5px',
-              border: '2px solid #D35400',
-              textDecoration: 'none',
-              fontWeight: 'bold',
-              backgroundColor: 'transparent',
-              whiteSpace: 'nowrap',
-              fontSize: '0.9rem',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = '#D35400';
-              e.currentTarget.style.color = 'white';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = 'transparent';
-              e.currentTarget.style.color = '#D35400';
-            }}
-          >
-            Log in / Sign up
-          </Link>
-        )}
+        </div>
+        {user ? (
+  <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+    <Link
+      to="/profile"
+      style={{
+        backgroundColor: '#fff',
+        borderRadius: '10px',
+        padding: '0.4rem 0.8rem',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '10px',
+        boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+        textDecoration: 'none',
+        transition: 'all 0.3s ease'
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.transform = 'scale(1.05)';
+        e.currentTarget.style.boxShadow = '0 6px 8px rgba(0,0,0,0.2)';
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.transform = 'scale(1)';
+        e.currentTarget.style.boxShadow = '0 4px 6px rgba(0,0,0,0.1)';
+      }}
+    >
+      <img
+        src={user.photo || "/default-avatar.png"}
+        alt="Profil"
+        style={{
+          height: '40px',
+          width: '40px',
+          borderRadius: '50%',
+          objectFit: 'cover',
+          border: '2px solid #D35400'
+        }}
+      />
+      <div style={{ display: 'flex', flexDirection: 'column', fontSize: '0.85rem' }}>
+        <span style={{ color: '#D35400', fontWeight: 'bold' }}>{user.username}</span>
+        <span style={{ color: '#666' }}>{user.role} – {user.points} pts</span>
+      </div>
+    </Link>
+    <button
+      onClick={handleLogout}
+      style={{
+        color: '#D35400',
+        padding: '0.4rem 1rem',
+        borderRadius: '5px',
+        border: '2px solid #D35400',
+        backgroundColor: 'transparent',
+        fontWeight: 'bold',
+        cursor: 'pointer'
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.backgroundColor = '#D35400';
+        e.currentTarget.style.color = 'white';
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.backgroundColor = 'transparent';
+        e.currentTarget.style.color = '#D35400';
+      }}
+    >
+      Se déconnecter
+    </button>
+  </div>
+) : (
+  <Link
+    to="/auth"
+    style={{
+      color: '#D35400',
+      padding: '0.4rem 1rem',
+      borderRadius: '5px',
+      border: '2px solid #D35400',
+      textDecoration: 'none',
+      fontWeight: 'bold',
+      backgroundColor: 'transparent',
+      whiteSpace: 'nowrap',
+      fontSize: '0.9rem',
+    }}
+    onMouseEnter={(e) => {
+      e.currentTarget.style.backgroundColor = '#D35400';
+      e.currentTarget.style.color = 'white';
+    }}
+    onMouseLeave={(e) => {
+      e.currentTarget.style.backgroundColor = 'transparent';
+      e.currentTarget.style.color = '#D35400';
+    }}
+  >
+    Connexion / Inscription
+  </Link>
+)}
 
       </header>
 
