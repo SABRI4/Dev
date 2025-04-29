@@ -20,7 +20,7 @@ const ModuleAdministration = ({validationMode, onToggleValidation }) => {
 
 
   const [users, setUsers] = useState([]);                
-  const [deviceTypeOptions, setDeviceTypeOptions] = useState([]);
+  const [deviceTypeOptions, setDeviceTypeOptions] = useState(['thermostat', 'climatiseur', 'volets', 'lumière', 'sécurité', 'météo']);
 
   const [connectedDevices, setConnectedDevices] = useState([]); 
   const initialNewUserState = {
@@ -38,6 +38,24 @@ const ModuleAdministration = ({validationMode, onToggleValidation }) => {
     memberType : ''
   };
   
+  const [historyModalUser, setHistoryModalUser] = useState(null);
+  const [loginHistory, setLoginHistory]     = useState([]);
+
+  async function openHistoryModal(userId, userName) {
+    try {
+      const res  = await fetch(`${API_URL}?history=1&userId=${userId}`, {
+        credentials: 'include'
+      });
+      const json = await res.json();
+      if (json.status !== 'success') throw new Error(json.message);
+      setLoginHistory(json.history);
+      setHistoryModalUser({ id: userId, name: userName });
+    } catch (err) {
+      alert("Impossible de charger l'historique : " + err.message);
+    }
+  }
+
+
   const [newUser,   setNewUser]   = useState(initialNewUserState);
   const [loadingUsers, setLoadingUsers] = useState(true);
   const [errorUsers, setErrorUsers]     = useState(null);
@@ -676,67 +694,16 @@ const ModuleAdministration = ({validationMode, onToggleValidation }) => {
   };
   
   
-  const handleAddCategory = async () => {
-    if (newCategory && !deviceTypeOptions.some(c => (typeof c === 'object' ? c.name : c) === newCategory)) {
-      try {
-        console.log('Contenu de newCategory avant envoi :', JSON.stringify(newCategory));
-
-        const response = await fetch(`${CATEGORY_API}?action=addCategory`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify({ name: newCategory }),
-        });
-  
-        const data = await response.json();
-        if (data.success) {
-          setDeviceTypeOptions(prev => [...prev, { id: data.data.id, name: newCategory }]);
-          setNewCategory('');
-        } else {
-          alert('Erreur lors de l\'ajout de la catégorie : ' + data.message);
-        }
-      } catch (error) {
-        console.error('Erreur ajout catégorie', error);
-        alert('Erreur réseau lors de l\'ajout de la catégorie.');
-      }
+  const handleAddCategory = () => {
+    if (newCategory && !deviceTypeOptions.includes(newCategory)) {
+      setDeviceTypeOptions(prev => [...prev, newCategory]);
+      setNewDevice(prev => ({ ...prev, type: newCategory }));
+      setNewCategory('');
     }
   };
-  
-  const handleDeleteCategory = async (categoryToDelete) => {
-    try {
-      // Trouver l'objet complet ou le nom
-      const cat = deviceTypeOptions.find(c => (typeof c === 'object' ? c.name : c) === categoryToDelete);
-      if (!cat) {
-        alert('Catégorie non trouvée.');
-        return;
-      }
-  
-      const categoryId = typeof cat === 'object' ? cat.id : null;
-      if (!categoryId) {
-        alert('Impossible de trouver l\'ID pour supprimer.');
-        return;
-      }
-  
-      const response = await fetch(`${CATEGORY_API}?action=deleteCategory&id=${categoryId}`, {
-        method: 'DELETE',
-        credentials: 'include',
-      });
-  
-      const data = await response.json();
-      if (data.success) {
-        // MAJ des options : on enlève la catégorie supprimée
-        setDeviceTypeOptions(prev => prev.filter(c => (typeof c === 'object' ? c.name : c) !== categoryToDelete));
-        // MAJ des devices connectés
-        setConnectedDevices(prev => prev.filter(device => device.type !== categoryToDelete));
-  
-        alert(`La catégorie "${categoryToDelete}" et ses appareils ont été supprimés.`);
-      } else {
-        alert('Erreur suppression catégorie : ' + data.message);
-      }
-    } catch (error) {
-      console.error('Erreur suppression catégorie', error);
-      alert('Erreur réseau lors de la suppression de la catégorie.');
-    }
+
+const handleDeleteCategory = (categoryToDelete) => {
+    setDeviceTypeOptions(prev => prev.filter(type => type !== categoryToDelete));
   };
 
   const closeModal = () => {
@@ -1215,6 +1182,35 @@ const ModuleAdministration = ({validationMode, onToggleValidation }) => {
   const renderModalContent = (key) => {
     switch (key) {
       case 'users':
+        if (historyModalUser) {
+          return (
+            <div style={styles.modalOverlay} onClick={() => setHistoryModalUser(null)}>
+              <div style={styles.modal} onClick={e => e.stopPropagation()}>
+                <h2>Historique de connexion de {historyModalUser.name}</h2>
+                <table style={{ width:'100%', borderCollapse:'collapse' }}>
+                  <thead>
+                    <tr>
+                      <th>Date</th>
+                      <th>Succès</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {loginHistory.length > 0 ? loginHistory.map((h,i) => (
+                      <tr key={i}>
+                        <td>{new Date(h.date_connexion).toLocaleString()}</td>
+                        <td>{h.succes_connexion ? '✔️' : '❌'}</td>
+                      </tr>
+                    )) : (
+                      <tr><td colSpan="2">Aucun historique</td></tr>
+                    )}
+                  </tbody>
+                </table>
+                <button onClick={() => setHistoryModalUser(null)}>Fermer</button>
+              </div>
+            </div>
+          );
+        }
+        
         if (loadingUsers) {
           return (
             <p style={{ color: '#fff', textAlign: 'center', marginTop: '20vh' }}>
@@ -1230,7 +1226,7 @@ const ModuleAdministration = ({validationMode, onToggleValidation }) => {
             </p>
           );
         }
-        
+
         return (
             <div style={styles.modal}>
             <div style={styles.modalContent}>
@@ -1293,6 +1289,15 @@ const ModuleAdministration = ({validationMode, onToggleValidation }) => {
                       }}>
                         Rôle: {user.role}
                       </p>
+                      <button
+                      style={getButtonStyle('viewHistory')}
+                      onClick={e => {
+                        e.stopPropagation();                       
+                        openHistoryModal(user.id, user.name);
+                      }}
+                    >
+                      Historique
+                    </button>
                     </div>
                     </div>
                   ))}
@@ -2478,6 +2483,8 @@ const ModuleAdministration = ({validationMode, onToggleValidation }) => {
             gap: '1rem'
           }
         }}>
+
+    
           {panels.map(panel => (
             <div 
               key={panel.key} 

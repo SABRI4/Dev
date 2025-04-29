@@ -17,6 +17,8 @@ global $pdo;
 
 $method  = $_SERVER['REQUEST_METHOD'];
 $id      = $_GET['id'] ?? null;
+$action = $_GET['action'] ?? null;
+
 
 
 if ($_SERVER['REQUEST_METHOD']==='GET' && ($_GET['action'] ?? '')==='categories') {
@@ -132,30 +134,5 @@ function updateSession($userId) {
     }
 }
 
-if ($method === 'GET' && ($_GET['action'] ?? '') === 'categories') {
-    $cats = $pdo->query("SELECT * FROM categories ORDER BY name")->fetchAll(PDO::FETCH_ASSOC);
-    respond(true, ['categories' => $cats]);
-}
 
-if ($method === 'POST' && ($_GET['action'] ?? '') === 'addCategory') {
-    $payload = json_decode(file_get_contents('php://input'), true) ?: [];
-
-    if (!isset($payload['name']) || empty(trim($payload['name']))) {
-        respond(false, ['message' => 'Nom de catégorie manquant'], 422);
-    }
-
-    $stmt = $pdo->prepare("INSERT INTO categories (name) VALUES (?)");
-    try {
-        $stmt->execute([trim($payload['name'])]);
-        respond(true, ['id' => $pdo->lastInsertId(), 'name' => trim($payload['name'])], 201);
-    } catch (PDOException $e) {
-        respond(false, ['message' => 'Erreur lors de l\'ajout: ' . $e->getMessage()], 500);
-    }
-}
-
-if ($method === 'DELETE' && ($_GET['action'] ?? '') === 'deleteCategory' && isset($_GET['id'])) {
-    $stmt = $pdo->prepare("DELETE FROM categories WHERE id = ?");
-    $stmt->execute([$_GET['id']]);
-    respond(true, ['message' => 'Catégorie supprimée']);
-}
 ?>

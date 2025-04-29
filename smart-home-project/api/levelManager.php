@@ -1,10 +1,10 @@
 <?php
 function calculerNiveau($points) {
-    if ($points >= 35) {
+    if ($points >= 15) {
         return 'expert';
-    } elseif ($points >= 20) {
-        return 'avance';
     } elseif ($points >= 10) {
+        return 'avance';
+    } elseif ($points >=  5) {
         return 'intermediaire';
     } else {
         return 'debutant';

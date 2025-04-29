@@ -22,6 +22,21 @@ $method = $_SERVER['REQUEST_METHOD'];
 
 switch ($method) {
     case 'GET':
+      case 'GET':
+        if (isset($_GET['history']) && isset($_GET['userId'])) {
+            $userId = (int)$_GET['userId'];
+            $stmt = $pdo->prepare("
+                SELECT date_connexion, succes_connexion
+                FROM historique_connexion
+                WHERE utilisateur_id = ?
+                ORDER BY date_connexion DESC
+                LIMIT 100
+            ");
+            $stmt->execute([$userId]);
+            $history = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            respond(true, ['history' => $history]);
+        }
+
         try {
             $sql = "
                 SELECT
