@@ -18,6 +18,7 @@ import UsersListPage         from './pages/UsersList/UsersListPage';
 function App() {
   const stored = localStorage.getItem("user");
   const user   = stored ? JSON.parse(stored) : null;
+  window.location.reload();
 
   const [validationMode, setValidationMode] = useState('Manuelle')
 
@@ -47,8 +48,8 @@ function App() {
               />
             )}
 
-            {/* pour les complexes avancés */}
-            {user.role === 'complexe' && user.niveau == 'avancé' && (
+            {/* pour les complexes  */}
+            {user.role === 'complexe' &&  (
               <>
                 <Route
                   path="/module-visualisation"
@@ -70,8 +71,8 @@ function App() {
               
             )}
 
-            {/* pour les admins experts */}
-            {user.role === 'admin' && user.niveau == 'expert' && (
+            {/* pour les admins  */}
+            {user.role === 'admin' && (
               <>
                 <Route
                   path="/module-visualisation"

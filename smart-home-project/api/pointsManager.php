@@ -9,7 +9,7 @@ function ajouterPoints($userId, $pointsAjoutes) {
     }
 
     // Récupérer les points et le niveau actuels
-    $stmt = $pdo->prepare("SELECT points, niveau FROM users WHERE id = ?");
+    $stmt = $pdo->prepare("SELECT points, niveau, is_verified FROM users WHERE id = ?");
     $stmt->execute([$userId]);
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -19,7 +19,7 @@ function ajouterPoints($userId, $pointsAjoutes) {
 
     $nouveauxPoints = $user['points'] + $pointsAjoutes;
     $nouveauNiveau = calculerNiveau($nouveauxPoints);
-    $nouveauRole = determinerRole($nouveauNiveau);
+    $nouveauRole = determinerRole($nouveauNiveau, $user['is_verified']);
 
     // Mettre à jour points + les roles
     $stmt = $pdo->prepare("UPDATE users SET points = ?, niveau = ?, role = ? WHERE id = ?");
@@ -27,12 +27,18 @@ function ajouterPoints($userId, $pointsAjoutes) {
 }
 
 // Fonction pour déterminer le rôle selon le niveau
-function determinerRole($niveau) {
+function determinerRole($niveau, $is_verified) {
     if ($niveau === 'expert') {
         return 'admin';
     } elseif ($niveau === 'avance') {
         return 'complexe';
-    } else {
+    } 
+
+    elseif($is_verified != 1) {
+        return 'visiteur';
+    }
+    
+    else {
         return 'simple';
     }
 }

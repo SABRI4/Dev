@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef  } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import backgroundImage from '../../Pictures/kitchen-background.jpg';
 import logoImage from '../../Pictures/cyhome-logo.png';
@@ -12,6 +12,7 @@ function HomePage() {
   const [showFooter, setShowFooter] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
   const [user, setUser] = useState(null);
+  const mounted = useRef(false);
 
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
@@ -22,11 +23,11 @@ function HomePage() {
   }, []);
 
   useEffect(() => {
-    if (user) {
+    if (!mounted.current && user) {
       updateUserPoints();
+      mounted.current = true;
     }
   }, [user]);
-
 
   useEffect(() => {
     const handleScroll = () => {
@@ -126,27 +127,33 @@ function HomePage() {
   };
 
   const updateUserPoints = async () => {
-    if (user) {
-      try {
-        const response = await fetch('http://localhost:3020/plateforme/smart-home-project/api/User-manager.php', {
-          credentials: 'include'
-        });
-        if (response.ok) {
-          const data = await response.json();
-          if (data.users && data.users.length > 0) {
-            const updatedUser = {
-              ...user,
-              points: data.users[0].points
-            };
-            setUser(updatedUser);
-            localStorage.setItem("user", JSON.stringify(updatedUser));
-          }
-        }
-      } catch (error) {
-        console.error('Erreur lors de la mise à jour des points :', error);
-      }
+    if (!user) return;
+    try {
+      const response = await fetch('http://localhost:3020/plateforme/smart-home-project/api/User-manager.php', {
+        credentials: 'include'
+      });
+      if (!response.ok) throw new Error('Fetch failed');
+      const data = await response.json();
+
+      const serverUser = data.users.find(u => u.id === user.id);
+      console.log('front id:', user.id, typeof user.id);
+      console.log('back ids:', data.users.map(u=>[u.id, typeof u.id]));
+      if (!serverUser) return;
+      const updatedUser = {
+        ...user,
+        points: serverUser.points,
+        niveau: serverUser.niveau,
+        role: serverUser.role,
+        is_verified: serverUser.is_verified
+      };
+      setUser(updatedUser);
+      localStorage.setItem("user", JSON.stringify(updatedUser));
+    } catch (err) {
+      console.error('Erreur lors de la mise à jour des points :', err);
     }
   };
+  
+  
 
   const handleModuleNavigation = (modulePath, e) => {
     e.preventDefault();

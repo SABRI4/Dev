@@ -116,30 +116,32 @@ function ModuleInformation() {
   };
 
   const updateUserPoints = async () => {
-    // Ne faire la mise à jour que si l'utilisateur est déjà connecté
-    if (user) {
-      try {
-        const response = await fetch('http://localhost:3020/plateforme/smart-home-project/api/User-manager.php', {
-          credentials: 'include'
-        });
-        if (response.ok) {
-          const data = await response.json();
-          if (data.users && data.users.length > 0) {
-            // On met à jour uniquement les points et on conserve le reste des données
-            const updatedUser = { 
-              ...user, 
-              points: data.users[0].points 
-            };
-            setUser(updatedUser);
-            localStorage.setItem("user", JSON.stringify(updatedUser));
-          }
-        }
-      } catch (error) {
-        console.error('Erreur mise à jour points:', error);
-        // Ne pas déconnecter en cas d'erreur
-      }
+    if (!user) return;
+    try {
+      const response = await fetch('http://localhost:3020/plateforme/smart-home-project/api/User-manager.php', {
+        credentials: 'include'
+      });
+      if (!response.ok) throw new Error('Fetch failed');
+      const data = await response.json();
+
+      const serverUser = data.users.find(u => u.id === user.id);
+      console.log('front id:', user.id, typeof user.id);
+      console.log('back ids:', data.users.map(u=>[u.id, typeof u.id]));
+      if (!serverUser) return;
+      const updatedUser = {
+        ...user,
+        points: serverUser.points,
+        niveau: serverUser.niveau,
+        role: serverUser.role,
+        is_verified: serverUser.is_verified
+      };
+      setUser(updatedUser);
+      localStorage.setItem("user", JSON.stringify(updatedUser));
+    } catch (err) {
+      console.error('Erreur lors de la mise à jour des points :', err);
     }
   };
+  
   
   useEffect(() => {
     // Toujours récupérer les appareils

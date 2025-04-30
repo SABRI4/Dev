@@ -37,7 +37,6 @@ if ($user && password_verify($password, $user['password'])) {
 
     // Remplissage session + points…
     $_SESSION['user_id']   = $user['id'];
-    // … vos autres $_SESSION
 
     // donner 0.25 pt
     ajouterPoints($user['id'], 0.25);
